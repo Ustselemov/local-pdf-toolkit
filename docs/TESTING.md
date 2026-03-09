@@ -24,7 +24,10 @@ Recommended manual checks in browser:
 - export as PDF
 - export as JPEG
 - apply watermark and page numbers
+- open the fullscreen image stamp editor
+- place, save, remove, and re-export a page stamp
 - verify JPEG preset details shown in the export modal
+- validate with files from `sample-files/`
 
 ## Known Gaps
 

@@ -1,91 +1,59 @@
 ﻿# Local PDF Toolkit
 
-This project was generated with the assistance of Codex AI and prompted by Ustselemov.
+This project was generated with the assistance of Codex AI and prompted by Ustselemov. AI-generated code and documentation may contain errors or incorrect assumptions. Human review is recommended before production, security-sensitive, or business-critical use.
 
-AI-generated code and documentation may contain errors or incorrect assumptions. Human review is recommended before production, security-sensitive, or business-critical use.
+## Overview
 
-Local PDF Toolkit is a browser-only, offline-first PDF workspace for private document operations on a local machine. Files are processed in the browser and are not uploaded to a backend service.
+Local PDF Toolkit is an offline-first browser application for private PDF page operations. Files stay on the user's device and are processed locally in the browser.
 
-## Highlights
+Current supported workflow:
 
 - Offline browser workflow with no backend
 - Local PDF, JPG, and PNG import
 - Page thumbnails, reorder, rotate, delete, extract, split, and merge-by-export
 - Watermark and page number overlays during export
+- Fullscreen image stamp editor
 - PDF and JPEG export paths
+
+## Quick Start
+
+1. Install Node.js 20+ if you want to run tests.
+2. Run `npm install`.
+3. Open [index.html](D:/VibeCoding/private-offline-pdf-toolkit/index.html) directly in a current Chromium-based browser.
 
 ## Repository Structure
 
-- `docs/` formal product and technical documentation
-- `src/` shared PDF logic
-- `tests/` automated checks
-- `tools/` local development helpers
-- `vendor/` browser-ready third-party runtime assets
+- [index.html](D:/VibeCoding/private-offline-pdf-toolkit/index.html): application shell
+- [styles.css](D:/VibeCoding/private-offline-pdf-toolkit/styles.css): UI styles
+- [app.js](D:/VibeCoding/private-offline-pdf-toolkit/app.js): browser entrypoint and orchestration
+- [src](D:/VibeCoding/private-offline-pdf-toolkit/src): focused browser helper modules and tested logic
+- [sample-files](D:/VibeCoding/private-offline-pdf-toolkit/sample-files): sample PDFs and stamp images for manual checks
+- [tests](D:/VibeCoding/private-offline-pdf-toolkit/tests): automated checks
+- [docs](D:/VibeCoding/private-offline-pdf-toolkit/docs): product and engineering documentation
+- [vendor](D:/VibeCoding/private-offline-pdf-toolkit/vendor): vendored browser libraries
 
-## Requirements
-
-- Node.js 20+ for development tasks and tests
-- Current Chromium-based browser for local `file://` usage
-
-## Installation
-
-1. Run `npm install`
-2. Open `index.html` directly in the browser
-3. Import local files and work in the page workspace
-
-## Example Usage
+## Usage
 
 1. Drop one or more PDF, JPG, or PNG files into the landing area.
 2. Reorder or rotate pages in the workspace.
 3. Open `Overlays` if watermark or page numbers are needed.
-4. Export as PDF or JPEG.
+4. Open the per-page stamp editor if an image stamp is needed.
+5. Export as PDF or JPEG.
 
 ## Configuration
 
-- No runtime secrets are required for the current build.
-- `.env.example` exists as a future-proof configuration template.
-- If future contributors add secrets, real values must stay in local untracked `.env` files only.
+- No runtime secrets are required for the current offline browser build.
+- `.env.example` is included for future configuration growth.
+- Do not store real credentials in tracked files.
 
-## Development Commands
+## Testing
+
+Run:
 
 - `npm.cmd test`
-- `npm.cmd run samples`
 
 ## Troubleshooting
 
 - If local file loading behaves inconsistently, use a current Chromium-based browser.
 - If multiple JPEG exports do not all download, check browser permissions for multiple downloads.
 - If a large document feels slow, reduce the number of pages in the active workspace before export.
-
-## Documentation
-
-- [Product Overview](./docs/PRODUCT_OVERVIEW.md)
-- [Technical Specification](./docs/TECHNICAL_SPECIFICATION.md)
-- [Functional Requirements](./docs/FUNCTIONAL_REQUIREMENTS.md)
-- [Non-Functional Requirements](./docs/NON_FUNCTIONAL_REQUIREMENTS.md)
-- [System Architecture](./docs/SYSTEM_ARCHITECTURE.md)
-- [Architectural Decisions](./docs/ARCHITECTURAL_DECISIONS.md)
-- [Data Model](./docs/DATA_MODEL.md)
-- [API Reference](./docs/api/API_REFERENCE.md)
-- [Development Guide](./docs/DEVELOPMENT_GUIDE.md)
-- [Testing](./docs/TESTING.md)
-- [Roadmap](./docs/ROADMAP.md)
-- [Security](./docs/security/SECURITY.md)
-- [Documentation Wiki](./docs/wiki/index.html)
-
-## Legacy Planning Artifacts
-
-The following files are retained from earlier planning iterations and are not the primary source of truth for current repository documentation:
-
-- `architecture.md`
-- `roadmap.md`
-- `feasibility-review.md`
-- `product-brief.html`
-
-## Security
-
-No secrets are required for the current build. See [docs/security/SECURITY.md](./docs/security/SECURITY.md) for safe handling guidance.
-
-## License
-
-Released under the MIT License. See [LICENSE](./LICENSE).
