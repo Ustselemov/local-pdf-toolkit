@@ -379,3 +379,61 @@ button, input { font: inherit; }
 
 
 
+
+.stamp-modal__panel {
+  width: min(1200px, calc(100% - 32px));
+  padding: 20px;
+}
+
+.stamp-modal__header,
+.stamp-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.stamp-modal__header {
+  margin-bottom: 14px;
+}
+
+.stamp-modal__footer {
+  margin-top: 14px;
+}
+
+.stamp-modal__controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.stamp-modal__meta {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.stamp-editor {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 70vh;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(29, 37, 41, 0.03), rgba(29, 37, 41, 0.06));
+}
+
+.stamp-editor__canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 68vh;
+  background: #fff;
+  box-shadow: var(--shadow);
+  cursor: grab;
+}
+
+.stamp-editor__canvas[data-dragging="true"] {
+  cursor: grabbing;
+}
+
