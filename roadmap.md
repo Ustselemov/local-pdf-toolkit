@@ -1,5 +1,8 @@
 ﻿# Private Offline PDF Toolkit Roadmap
 
+Archived planning note:
+This root-level document is an early planning artifact. The current authoritative roadmap lives in `docs/ROADMAP.md` and `product-brief.html`.
+
 ## Roadmap philosophy
 
 This roadmap is intentionally conservative.
@@ -28,7 +31,7 @@ A private local browser tool for page-level PDF operations.
 
 ### Not committed in 1.0
 
-- text editing inside existing PDF content
+- full PDF text editing
 - OCR
 - advanced compression
 - certificate signatures

@@ -1,5 +1,8 @@
 ﻿# Feasibility Review
 
+Archived planning note:
+This root-level document is an early feasibility snapshot. The current authoritative project status lives in `docs/` and `product-brief.html`.
+
 ## Bottom line
 
 A fully local browser-based PDF toolkit is realistic.
@@ -39,7 +42,7 @@ These are plausible after the core app works, but I would not sell them as guara
 
 These are not appropriate promises for the first product pitch.
 
-- deep editing of existing text
+- full PDF text editing
 - OCR
 - advanced compression claims
 - certificate-based digital signatures

@@ -32,13 +32,17 @@ chrome.stderr.on('data', (chunk) => {
 try {
   const wsUrl = await getPageWebSocketDebuggerUrl(remoteDebuggingPort);
   const cdp = await connectToCdp(wsUrl);
+  const runtimeExceptions = [];
 
   await cdp.send('Page.enable');
   await cdp.send('Runtime.enable');
+  cdp.on('Runtime.exceptionThrown', (params) => {
+    runtimeExceptions.push(params);
+  });
   await cdp.send('Page.navigate', { url: appUrl });
   await cdp.waitFor('Page.loadEventFired', 15000);
 
-  const result = await waitForSmokeResult(cdp, 20000);
+  const result = await waitForSmokeResult(cdp, 20000, runtimeExceptions);
   assert.equal(result.status, 'pass', `Browser smoke test failed: ${JSON.stringify(result)}`);
   console.log(`PASS browser smoke test (${result.importedSources} sources, ${result.importedPages} pages, ${result.stampedPages} stamped)`);
 
@@ -110,6 +114,22 @@ async function connectToCdp(wsUrl) {
       socket.send(JSON.stringify({ id, method, params }));
       return new Promise((resolve, reject) => pending.set(id, { resolve, reject }));
     },
+    on(method, handler) {
+      if (!listeners.has(method)) {
+        listeners.set(method, new Set());
+      }
+      listeners.get(method).add(handler);
+      return () => {
+        const set = listeners.get(method);
+        if (!set) {
+          return;
+        }
+        set.delete(handler);
+        if (set.size === 0) {
+          listeners.delete(method);
+        }
+      };
+    },
     waitFor(method, timeoutMs) {
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
@@ -123,21 +143,7 @@ async function connectToCdp(wsUrl) {
           resolve(params);
         };
 
-        const unsubscribe = () => {
-          const set = listeners.get(method);
-          if (!set) {
-            return;
-          }
-          set.delete(handler);
-          if (set.size === 0) {
-            listeners.delete(method);
-          }
-        };
-
-        if (!listeners.has(method)) {
-          listeners.set(method, new Set());
-        }
-        listeners.get(method).add(handler);
+        const unsubscribe = this.on(method, handler);
       });
     },
     async close() {
@@ -147,7 +153,7 @@ async function connectToCdp(wsUrl) {
   };
 }
 
-async function waitForSmokeResult(cdp, timeoutMs) {
+async function waitForSmokeResult(cdp, timeoutMs, runtimeExceptions = []) {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
     const evaluation = await cdp.send('Runtime.evaluate', {
@@ -176,7 +182,9 @@ async function waitForSmokeResult(cdp, timeoutMs) {
     expression: `document.getElementById('status')?.textContent || ''`,
     returnByValue: true,
   });
-  throw new Error(`Smoke result was not produced. UI status: ${statusDump.result?.value || 'unknown'}`);
+  const latestException = runtimeExceptions.at(-1);
+  const exceptionText = latestException?.exceptionDetails?.exception?.description || latestException?.exceptionDetails?.text || 'none';
+  throw new Error(`Smoke result was not produced. UI status: ${statusDump.result?.value || 'unknown'}. Runtime exception: ${exceptionText}`);
 }
 
 async function closeChrome(chromeProcess) {

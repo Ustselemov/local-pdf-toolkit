@@ -1,5 +1,8 @@
 ﻿# Private Offline PDF Toolkit Architecture
 
+Archived planning note:
+This root-level document is an early planning artifact. The current authoritative engineering docs live in `docs/` and `product-brief.html`.
+
 ## Goal
 
 Build a browser app that users can run locally on a normal computer without backend services, Docker, Python, or developer tooling.
@@ -202,7 +205,7 @@ Design response:
 
 ## Explicit non-goals for MVP 1
 
-- deep editing of existing text blocks
+- full PDF text editing
 - OCR
 - advanced compression tuning
 - cryptographic signing workflows

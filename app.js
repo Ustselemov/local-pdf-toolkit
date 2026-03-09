@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Local PDF Toolkit
  * Generated with the assistance of Codex AI
  * Prompted by Ustselemov
@@ -11,10 +11,23 @@
   const { loadImageSize, loadImageElement, importImageBitmapFromSource } = globalThis.LocalPdfToolkitImageHelpers;
   const { applyOverlaysToCanvas, applyOverlaysToPdfPage } = globalThis.LocalPdfToolkitOverlayHelpers;
   const { parseSplitSpec } = globalThis.LocalPdfToolkitSplitHelpers;
+  const {
+    movePageRelative: movePageRelativeInList,
+    toggleSelection: toggleSelectionInSet,
+    getSelectedPages: getSelectedPagesFromState,
+    rotatePages: rotatePagesInSelection,
+    rotateOnePage: rotateSinglePageInList,
+    moveSinglePage: moveSinglePageInList,
+    deleteOnePage: deleteSinglePageFromWorkspace,
+    deleteSelectedPages: deleteSelectedPagesFromWorkspace,
+    buildFilename: buildFilenameFromSources,
+  } = globalThis.LocalPdfToolkitWorkspaceHelpers;
   const { cloneStamp, getStampRenderRect } = globalThis.LocalPdfToolkitStampHelpers;
   const { createStampEditor } = globalThis.LocalPdfToolkitStampEditor;
   const { getJpegPresetOptions, formatJpegDetails } = globalThis.LocalPdfToolkitJpegHelpers;
   const { canvasToBlob, downloadBlob } = globalThis.LocalPdfToolkitExportHelpers;
+  const { createExportController } = globalThis.LocalPdfToolkitExportController;
+  const { installTestApi: installBrowserTestApi, runSmokeTest: runSmokeTestHarness } = globalThis.LocalPdfToolkitTestHooks;
   const isSmokeMode = new URLSearchParams(globalThis.location.search).get('smoke') === '1';
 
   const state = {
@@ -109,12 +122,35 @@
     setStatus,
   });
 
+  const exportController = createExportController({
+    state,
+    elements,
+    getOverlaySettings,
+    getSelectedJpegOptions,
+    renderPageForJpegExport,
+    buildPdfBytes,
+    canvasToBlob,
+    downloadBlob,
+    setStatus,
+    applyOverlaysToCanvas,
+    onModalOpen: refreshExportModalJpegDetails,
+  });
+  const { openExportModal, closeExportModal, confirmExport, exportPagesAsPdf } = exportController;
+
   bindEvents();
   syncOverlayControls();
   render();
   init();
-  installTestApi();
-  void runSmokeTestFromQuery();
+  installBrowserTestApi({
+    handleFiles,
+    resetWorkspace,
+    state,
+    elements,
+    getPageById,
+    renderPageToCanvas,
+    stampEditor,
+  });
+  void runSmokeTestHarness({ isSmokeMode, setStatus });
 
   function init() {
     if (!pdfjsLib) {
@@ -374,7 +410,7 @@
     }
 
     const selectedCount = state.selectedPageIds.size;
-    elements.summary.textContent = `${state.sourceDocuments.length} file${state.sourceDocuments.length === 1 ? '' : 's'} · ${state.pages.length} page${state.pages.length === 1 ? '' : 's'}${selectedCount ? ` · ${selectedCount} selected` : ''}`;
+    elements.summary.textContent = `${state.sourceDocuments.length} file${state.sourceDocuments.length === 1 ? '' : 's'} - ${state.pages.length} page${state.pages.length === 1 ? '' : 's'}${selectedCount ? ` - ${selectedCount} selected` : ''}`;
     updateButtons();
     renderPages();
   }
@@ -432,7 +468,7 @@
         if (!state.draggingPageId || state.draggingPageId === page.id) {
           return;
         }
-        state.pages = movePageRelative(state.pages, state.draggingPageId, page.id, dropPosition);
+        state.pages = movePageRelativeInList(state.pages, state.draggingPageId, page.id, dropPosition);
         render();
         setStatus('success', 'Page order updated.');
       });
@@ -452,16 +488,16 @@
           <input class="page-card__checkbox" type="checkbox" ${state.selectedPageIds.has(page.id) ? 'checked' : ''}>
         </div>
         <div class="page-card__actions">
-          <button class="icon-button" type="button" data-action="move-left" title="Move left">←</button>
-          <button class="icon-button" type="button" data-action="move-right" title="Move right">→</button>
-          <button class="icon-button" type="button" data-action="rotate-left" title="Rotate left">↺</button>
-          <button class="icon-button" type="button" data-action="rotate-right" title="Rotate right">↻</button>
-          <button class="icon-button" type="button" data-action="stamp" title="Image stamp">◎</button>
-          <button class="icon-button icon-button--accent" type="button" data-action="extract" title="Extract page">⇩</button>
-          <button class="icon-button icon-button--danger" type="button" data-action="delete" title="Delete page">✕</button>
+          <button class="icon-button" type="button" data-action="move-left" title="Move left"><</button>
+          <button class="icon-button" type="button" data-action="move-right" title="Move right">></button>
+          <button class="icon-button" type="button" data-action="rotate-left" title="Rotate left">&#8634;</button>
+          <button class="icon-button" type="button" data-action="rotate-right" title="Rotate right">&#8635;</button>
+          <button class="icon-button" type="button" data-action="stamp" title="Image stamp">Stamp</button>
+          <button class="icon-button icon-button--accent" type="button" data-action="extract" title="Export page">Export</button>
+          <button class="icon-button icon-button--danger" type="button" data-action="delete" title="Delete page">Del</button>
         </div>
-        <div class="page-card__sub">${escapeHtml(page.sourceName)}${page.sourceType === 'pdf' ? ` · source page ${page.sourcePageIndex + 1}` : ' · image source'}</div>
-        <div class="page-card__sub">Rotation ${normalizeRotation(page.baseRotation + page.rotation)}°</div>
+        <div class="page-card__sub">${escapeHtml(page.sourceName)}${page.sourceType === 'pdf' ? ` - source page ${page.sourcePageIndex + 1}` : ' - image source'}</div>
+        <div class="page-card__sub">Rotation ${normalizeRotation(page.baseRotation + page.rotation)} deg</div>
       `;
       card.addEventListener('click', (event) => {
         if (event.target.closest('button') || event.target.closest('input')) {
@@ -493,77 +529,6 @@
     return state.pages.find((page) => page.id === pageId) || null;
   }
 
-  function openExportModal(pages, filenameBase, label) {
-    state.pendingExport = { pages, filenameBase, label };
-    elements.exportModal.hidden = false;
-    void refreshExportModalJpegDetails();
-  }
-
-  function closeExportModal() {
-    state.pendingExport = null;
-    elements.exportModal.hidden = true;
-  }
-
-  async function confirmExport(format) {
-    if (!state.pendingExport) {
-      closeExportModal();
-      return;
-    }
-
-    const { pages, filenameBase } = state.pendingExport;
-    closeExportModal();
-
-    if (format === 'pdf') {
-      await exportPagesAsPdf(pages, filenameBase);
-      return;
-    }
-
-    await exportPagesAsJpeg(pages, filenameBase, false, getSelectedJpegOptions());
-  }
-
-  async function exportPagesAsPdf(pages, filenameBase, silent) {
-    if (!pages.length) {
-      setStatus('warning', 'There are no pages to export.');
-      return;
-    }
-
-    try {
-      const bytes = await buildPdfBytes(pages);
-      downloadBlob(new Blob([bytes], { type: 'application/pdf' }), `${filenameBase}.pdf`);
-      if (!silent) {
-        setStatus('success', `Saved ${filenameBase}.pdf`);
-      }
-    } catch (error) {
-      console.error(error);
-      setStatus('error', `Export failed: ${error.message}`);
-    }
-  }
-
-  async function exportPagesAsJpeg(pages, filenameBase, silent, jpegOptions) {
-    if (!pages.length) {
-      setStatus('warning', 'There are no pages to export.');
-      return;
-    }
-
-    try {
-      for (let index = 0; index < pages.length; index += 1) {
-        const page = pages[index];
-        const options = jpegOptions || getSelectedJpegOptions();
-        const canvas = await renderPageForJpegExport(page, options);
-        applyOverlaysToCanvas(canvas, index, pages.length, getOverlaySettings());
-        const blob = await canvasToBlob(canvas, 'image/jpeg', options.quality);
-        const suffix = pages.length === 1 ? '' : `-${index + 1}`;
-        downloadBlob(blob, `${filenameBase}${suffix}.jpg`);
-      }
-      if (!silent) {
-        setStatus('success', pages.length === 1 ? `Saved ${filenameBase}.jpg` : `Saved ${pages.length} JPEG files.`);
-      }
-    } catch (error) {
-      console.error(error);
-      setStatus('error', `JPEG export failed: ${error.message}`);
-    }
-  }
-
   async function refreshExportModalJpegDetails() {
     if (!state.pendingExport || !state.pendingExport.pages.length) {
       elements.exportJpegDetails.textContent = '';
@@ -573,7 +538,7 @@
     const firstPage = state.pendingExport.pages[0];
     const options = getSelectedJpegOptions();
     const size = await getExportPixelSize(firstPage, options);
-    elements.exportJpegDetails.textContent = `${options.label}: about ${size.width} x ${size.height} px for the first page, JPEG quality ${options.qualityPercent}. Exact file size depends on page content.`;
+    elements.exportJpegDetails.textContent = formatJpegDetails(options, size);
   }
 
   function getSelectedJpegOptions() {
@@ -621,25 +586,6 @@
     setStatus('success', `Exported ${groups.length} split PDF file${groups.length === 1 ? '' : 's'}.`);
   }
 
-  function movePageRelative(pages, movingPageId, targetPageId, position) {
-    if (movingPageId === targetPageId) {
-      return pages.slice();
-    }
-
-    const nextPages = pages.slice();
-    const movingIndex = nextPages.findIndex((page) => page.id === movingPageId);
-    const targetIndex = nextPages.findIndex((page) => page.id === targetPageId);
-    if (movingIndex === -1 || targetIndex === -1) {
-      return nextPages;
-    }
-
-    const [movingPage] = nextPages.splice(movingIndex, 1);
-    const baseTargetIndex = movingIndex < targetIndex ? targetIndex - 1 : targetIndex;
-    const insertIndex = position === 'after' ? baseTargetIndex + 1 : baseTargetIndex;
-    nextPages.splice(insertIndex, 0, movingPage);
-    return nextPages;
-  }
-
   function clearDropTargets() {
     document.querySelectorAll('[data-drop-target]').forEach((element) => {
       element.dataset.dropTarget = '';
@@ -647,16 +593,12 @@
   }
 
   function toggleSelection(pageId) {
-    if (state.selectedPageIds.has(pageId)) {
-      state.selectedPageIds.delete(pageId);
-    } else {
-      state.selectedPageIds.add(pageId);
-    }
+    toggleSelectionInSet(state.selectedPageIds, pageId);
     render();
   }
 
   function getSelectedPages() {
-    return state.pages.filter((page) => state.selectedPageIds.has(page.id));
+    return getSelectedPagesFromState(state.pages, state.selectedPageIds);
   }
 
   function rotateSelected(delta) {
@@ -665,43 +607,32 @@
       return;
     }
 
-    state.pages = state.pages.map((page) => state.selectedPageIds.has(page.id)
-      ? { ...page, rotation: normalizeRotation(page.rotation + delta) }
-      : page);
-
+    state.pages = rotatePagesInSelection(state.pages, state.selectedPageIds, delta, normalizeRotation);
     previewCache.clear();
     render();
     setStatus('success', 'Rotation updated.');
   }
 
   function rotateOnePage(pageId, delta) {
-    state.pages = state.pages.map((page) => page.id === pageId
-      ? { ...page, rotation: normalizeRotation(page.rotation + delta) }
-      : page);
-
+    state.pages = rotateSinglePageInList(state.pages, pageId, delta, normalizeRotation);
     previewCache.clear();
     render();
     setStatus('success', 'Page rotated.');
   }
 
   function moveSinglePage(pageId, direction) {
-    const index = state.pages.findIndex((page) => page.id === pageId);
-    const targetIndex = index + direction;
-    if (index === -1 || targetIndex < 0 || targetIndex >= state.pages.length) {
+    const nextPages = moveSinglePageInList(state.pages, pageId, direction);
+    if (nextPages.length === state.pages.length && nextPages.every((page, index) => page.id === state.pages[index].id)) {
       return;
     }
 
-    const nextPages = state.pages.slice();
-    const [page] = nextPages.splice(index, 1);
-    nextPages.splice(targetIndex, 0, page);
     state.pages = nextPages;
     render();
     setStatus('success', direction < 0 ? 'Page moved left.' : 'Page moved right.');
   }
 
   function deleteOnePage(pageId) {
-    state.pages = state.pages.filter((page) => page.id !== pageId);
-    state.selectedPageIds.delete(pageId);
+    state.pages = deleteSinglePageFromWorkspace(state.pages, state.selectedPageIds, pageId);
     render();
     setStatus('success', 'Page deleted.');
   }
@@ -713,7 +644,7 @@
     }
 
     const removedCount = state.selectedPageIds.size;
-    state.pages = state.pages.filter((page) => !state.selectedPageIds.has(page.id));
+    state.pages = deleteSelectedPagesFromWorkspace(state.pages, state.selectedPageIds);
     state.selectedPageIds.clear();
     render();
     setStatus('success', `Deleted ${removedCount} page${removedCount === 1 ? '' : 's'}.`);
@@ -830,8 +761,7 @@
   }
 
   function buildFilename(suffix) {
-    const base = state.sourceDocuments.length === 1 ? trimExtension(state.sourceDocuments[0].name) : 'workspace';
-    return sanitize(`${base}-${suffix}`);
+    return buildFilenameFromSources(state.sourceDocuments, trimExtension, sanitize, suffix);
   }
 
   async function onPreviewIntersection(entries) {
@@ -979,97 +909,17 @@
     elements.status.dataset.kind = kind;
     elements.status.textContent = message;
   }
-  function installTestApi() {
-    globalThis.LocalPdfToolkitTestApi = {
-      importFiles: async (files) => handleFiles(files),
-      resetWorkspace,
-      getSnapshot: () => ({
-        sourceCount: state.sourceDocuments.length,
-        pageCount: state.pages.length,
-        pageIds: state.pages.map((page) => page.id),
-        stampedPageIds: state.pages.filter((page) => page.stamp).map((page) => page.id),
-        workspaceHidden: elements.workspace.hidden,
-        goToEditorDisabled: elements.goToEditorButton.disabled,
-        status: elements.status.textContent,
-        cardCount: elements.pagesGrid.children.length,
-      }),
-      applyStampToPage: async (pageId, file) => {
-        await stampEditor.open(pageId);
-        await stampEditor.handleFile(file);
-        stampEditor.save();
-      },
-      renderPage: async (pageId, scale) => {
-        const page = getPageById(pageId);
-        if (!page) {
-          throw new Error('Page not found for smoke test.');
-        }
-        const canvas = await renderPageToCanvas(page, scale || 1);
-        return { width: canvas.width, height: canvas.height };
-      },
-    };
-  }
+})();
 
-  async function runSmokeTestFromQuery() {
-    if (!isSmokeMode) {
-      return;
-    }
 
-    const resultNode = document.createElement('pre');
-    resultNode.id = 'smoke-result';
-    resultNode.hidden = true;
-    document.body.appendChild(resultNode);
 
-    const setSmokeResult = (status, details) => {
-      resultNode.dataset.status = status;
-      resultNode.textContent = JSON.stringify({ status, ...details }, null, 2);
-      document.documentElement.dataset.smokeStatus = status;
-    };
 
-    try {
-      const pdfFile = await loadSmokeFile('./sample-files/sample-a.pdf', 'sample-a.pdf', 'application/pdf');
-      const imageFile = await loadSmokeFile('./sample-files/stamp-sample.jpg', 'stamp-sample.jpg', 'image/jpeg');
-      const stampFile = await loadSmokeFile('./sample-files/stamp-sample.png', 'stamp-sample.png', 'image/png');
 
-      await globalThis.LocalPdfToolkitTestApi.importFiles([pdfFile, imageFile]);
-      const snapshotAfterImport = globalThis.LocalPdfToolkitTestApi.getSnapshot();
-      if (snapshotAfterImport.sourceCount !== 2 || snapshotAfterImport.pageCount < 3 || snapshotAfterImport.cardCount !== snapshotAfterImport.pageCount) {
-        throw new Error(`Unexpected import snapshot: ${JSON.stringify(snapshotAfterImport)}`);
-      }
 
-      const renderInfo = await globalThis.LocalPdfToolkitTestApi.renderPage(snapshotAfterImport.pageIds[0], 1);
-      if (!renderInfo.width || !renderInfo.height) {
-        throw new Error(`Render failed: ${JSON.stringify(renderInfo)}`);
-      }
 
-      await globalThis.LocalPdfToolkitTestApi.applyStampToPage(snapshotAfterImport.pageIds[0], stampFile);
-      const snapshotAfterStamp = globalThis.LocalPdfToolkitTestApi.getSnapshot();
-      if (!snapshotAfterStamp.stampedPageIds.includes(snapshotAfterImport.pageIds[0])) {
-        throw new Error(`Stamp was not saved: ${JSON.stringify(snapshotAfterStamp)}`);
-      }
 
-      setSmokeResult('pass', {
-        importedSources: snapshotAfterStamp.sourceCount,
-        importedPages: snapshotAfterStamp.pageCount,
-        stampedPages: snapshotAfterStamp.stampedPageIds.length,
-        renderWidth: renderInfo.width,
-        renderHeight: renderInfo.height,
-      });
-    } catch (error) {
-      console.error(error);
-      setSmokeResult('fail', { message: error.message });
-    }
-  }
 
-  async function loadSmokeFile(relativePath, filename, mimeType) {
-    const response = await fetch(relativePath);
-    if (!response.ok) {
-      throw new Error(`Unable to load smoke fixture: ${relativePath}`);
-    }
-    const bytes = await response.arrayBuffer();
-    return new File([bytes], filename, { type: mimeType });
-  }
 
-  })();
 
 
 

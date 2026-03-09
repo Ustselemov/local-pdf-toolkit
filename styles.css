@@ -276,13 +276,15 @@ button, input { font: inherit; }
 .icon-button {
   appearance: none;
   border: 0;
-  width: 40px;
+  min-width: 40px;
   height: 40px;
+  padding: 0 10px;
   border-radius: 12px;
   background: rgba(29, 37, 41, 0.08);
   color: var(--ink);
   cursor: pointer;
-  font-size: 18px;
+  font-size: 14px;
+  font-weight: 700;
   line-height: 1;
 }
 

@@ -1,84 +1,160 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Local PDF Toolkit Documentation Wiki</title>
   <style>
-    body { margin: 0; font-family: Segoe UI, Arial, sans-serif; color: #1d2529; background: #f4f1ea; }
-    .layout { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
-    nav { padding: 20px; background: #fffdf9; border-right: 1px solid rgba(29,37,41,.12); }
+    :root {
+      --bg: #f4f1ea;
+      --paper: #fffdf9;
+      --ink: #1d2529;
+      --muted: #667178;
+      --line: rgba(29,37,41,.12);
+      --accent: #0f766e;
+      --accent-soft: rgba(15,118,110,.08);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Segoe UI, Arial, sans-serif; color: var(--ink); background: var(--bg); }
+    .layout { display: grid; grid-template-columns: 300px 1fr; min-height: 100vh; }
+    nav { padding: 20px; background: var(--paper); border-right: 1px solid var(--line); }
     nav h1 { font-size: 20px; margin: 0 0 16px; }
-    nav a { display: block; margin-bottom: 10px; color: #0f766e; text-decoration: none; }
+    nav a {
+      display: block;
+      margin-bottom: 10px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      color: var(--accent);
+      text-decoration: none;
+    }
+    nav a[data-active="true"] { background: var(--accent-soft); }
     main { padding: 24px; }
-    article { background: #fffdf9; border: 1px solid rgba(29,37,41,.12); border-radius: 16px; padding: 20px; white-space: normal; }
+    article {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 20px;
+      white-space: normal;
+      min-height: calc(100vh - 48px);
+    }
     pre { white-space: pre-wrap; overflow-wrap: anywhere; background: rgba(29,37,41,.04); padding: 12px; border-radius: 12px; }
     code { font-family: Consolas, monospace; }
-    @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } nav { border-right: 0; border-bottom: 1px solid rgba(29,37,41,.12); } }
+    p, li { line-height: 1.55; }
+    ul { padding-left: 20px; }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      nav { border-right: 0; border-bottom: 1px solid var(--line); }
+      article { min-height: auto; }
+    }
   </style>
 </head>
 <body>
   <div class="layout">
-    <nav>
-      <h1>Documentation</h1>
-      <a href="#" data-doc="../PRODUCT_OVERVIEW.md">Product Overview</a>
-      <a href="#" data-doc="../TECHNICAL_SPECIFICATION.md">Technical Specification</a>
-      <a href="#" data-doc="../FUNCTIONAL_REQUIREMENTS.md">Functional Requirements</a>
-      <a href="#" data-doc="../NON_FUNCTIONAL_REQUIREMENTS.md">Non-Functional Requirements</a>
-      <a href="#" data-doc="../SYSTEM_ARCHITECTURE.md">System Architecture</a>
-      <a href="#" data-doc="../ARCHITECTURAL_DECISIONS.md">Architectural Decisions</a>
-      <a href="#" data-doc="../DATA_MODEL.md">Data Model</a>
-      <a href="#" data-doc="../api/API_REFERENCE.md">API Reference</a>
-      <a href="#" data-doc="../DEVELOPMENT_GUIDE.md">Development Guide</a>
-      <a href="#" data-doc="../TESTING.md">Testing</a>
-      <a href="#" data-doc="../ROADMAP.md">Roadmap</a>
-      <a href="#" data-doc="../security/SECURITY.md">Security</a>
-      <a href="#" data-doc="../diagrams/architecture.md">Architecture Diagram</a>
-    </nav>
+    <nav id="nav"></nav>
     <main>
       <article id="content">Loading documentation...</article>
     </main>
   </div>
   <script>
+    const DOCS = new Map([
+      ["Product Overview", "# Product Overview\n\nThis project was generated with the assistance of Codex AI and prompted by Ustselemov.\n\n## Purpose\n\nLocal PDF Toolkit provides a private alternative to online PDF tools. The product focuses on page-level document operations that can run entirely in the browser without sending files to a server.\n\n## Product Goals\n\n- Keep user documents local to the machine\n- Cover the most common PDF page operations\n- Remain easy to run and inspect as a static project\n- Be maintainable as a public repository\n\n## Current Scope\n\n- Import PDF, JPG, PNG\n- Display page previews\n- Reorder, rotate, delete, extract, split, and export pages\n- Apply watermark and page number overlays on export\n- Export as PDF or JPEG\n\n## Non-Goals\n\n- Full document text editing\n- OCR\n- Certificate-backed digital signatures\n- Cloud synchronization\n"],
+      ["Technical Specification", "# Technical Specification\n\nThis project was generated with the assistance of Codex AI and prompted by Ustselemov.\n\n## Runtime Model\n\nThe application is a static browser application opened from local files. It uses browser JavaScript plus vendored PDF libraries.\n\n## Main Libraries\n\n- `pdf.js` for preview rendering from source PDFs\n- `pdf-lib` for PDF composition, page copying, and export overlays\n\n## Supported Input Types\n\n- PDF\n- JPG\n- JPEG\n- PNG\n\n## Core Processing Rules\n\n- No network requests are required for core document processing\n- No backend service exists\n- Export overlays are rendered during export, not stored as editable live annotations\n- JPEG export is generated from original source data, not from thumbnail-sized previews\n\n## Browser Constraints\n\n- The app targets current Chromium-based browsers for reliable `file://` behavior\n- Multiple JPEG downloads may be gated by browser download settings\n"],
+      ["Functional Requirements", "# Functional Requirements\n\nThis project was generated with the assistance of Codex AI and prompted by Ustselemov.\n\n## FR-1 Import\n\n- The system shall import local PDF files.\n- The system shall import local JPG and PNG files.\n- The system shall support click-to-select and drag-and-drop import.\n\n## FR-2 Workspace\n\n- The system shall display imported pages as visual previews.\n- The system shall allow reordering pages.\n- The system shall allow rotating pages.\n- The system shall allow deleting pages.\n- The system shall allow selecting multiple pages.\n\n## FR-3 Export\n\n- The system shall export the current workspace as a PDF.\n- The system shall export pages as JPEG files.\n- The system shall allow extracting selected pages.\n- The system shall support split export by explicit page ranges.\n- The system shall allow choosing PDF or JPEG export from the UI.\n\n## FR-4 Overlays\n\n- The system shall allow entering watermark text.\n- The system shall allow choosing a watermark position preset.\n- The system shall allow enabling page numbers.\n- The system shall allow choosing page number format and position preset.\n\n## FR-5 Image Stamps\n\n- The system shall allow opening a fullscreen image stamp editor for an individual page.\n- The system shall allow uploading a PNG or JPG stamp image.\n- The system shall allow moving and resizing the stamp.\n- The system shall persist the saved stamp on the page.\n- The system shall apply the stamp in preview, PDF export, and JPEG export.\n"],
+      ["Non-Functional Requirements", "# Non-Functional Requirements\n\nThis project was generated with the assistance of Codex AI and prompted by Ustselemov.\n\n## Privacy\n\n- Files must remain local to the browser session.\n- The project must not require document upload to a remote service.\n\n## Maintainability\n\n- The repository must include public-facing documentation.\n- Source code must remain understandable and modular enough for long-term maintenance.\n\n## Portability\n\n- The app must run as a static project without backend infrastructure.\n- The development workflow must remain simple for contributors.\n\n## Security\n\n- Secrets must not be hardcoded.\n- The repository must include safe defaults for git hygiene.\n\n## Performance\n\n- Preview rendering should remain responsive for ordinary personal document sizes.\n- Export must prioritize correctness over aggressive optimization.\n"],
+      ["System Architecture", "# System Architecture\n\nThis project was generated with the assistance of Codex AI and prompted by Ustselemov.\n\n## Components\n\n- `index.html`: application shell and UI structure\n- `styles.css`: presentation layer\n- `app.js`: browser entrypoint and orchestration layer\n- `src/common-helpers.js`: shared utility functions\n- `src/file-helpers.js`: input type detection and image MIME helpers\n- `src/image-helpers.js`: browser image loading helpers\n- `src/workspace-helpers.js`: pure workspace operations for selection, ordering, rotation, deletion, and export filenames\n- `src/overlay-helpers.js`: watermark and page-number rendering for canvas and PDF output\n- `src/split-helpers.js`: split-range parsing logic\n- `src/stamp-helpers.js`: stamp geometry helpers\n- `src/stamp-editor.js`: fullscreen image stamp editor controller\n- `src/jpeg-helpers.js`: JPEG preset definitions and detail formatting\n- `src/export-helpers.js`: browser blob export helpers\n- `src/export-controller.js`: export modal lifecycle and export orchestration\n- `src/test-hooks.js`: browser smoke-test hooks for the `file://` workflow\n- `src/pdf-ops.mjs`: tested helper logic for page operations\n- `vendor/`: vendored browser-ready third-party dependencies\n\n## Architecture Summary\n\nThe application uses a local-first single-page architecture. Document bytes are loaded into browser memory, preview rendering is handled through `pdf.js`, PDF composition is handled through `pdf-lib`, and the browser runtime is split into focused modules for workspace behavior, overlays, stamps, export, and test hooks. `app.js` now acts as the integration layer rather than the primary home for every feature.\n\n## Storage Model\n\nNo persistent application database is used. Data lives in browser memory during the session.\n"],
+      ["Architectural Decisions", "# Architectural Decisions\n\nThis project was generated with the assistance of Codex AI and prompted by Ustselemov.\n\n## ADR-1 Browser-only runtime\n\nDecision: keep all core functionality in a static browser application.\nReason: privacy and zero-backend setup are core product requirements.\n\n## ADR-2 Vendored runtime libraries\n\nDecision: vendor browser-ready builds of `pdf.js` and `pdf-lib`.\nReason: the app must work locally without a bundler or remote CDN dependency at runtime.\n\n## ADR-3 Page-level scope first\n\nDecision: focus on page operations instead of full PDF content editing.\nReason: the page-level scope is technically reliable in a browser-only offline product.\n\n## ADR-4 Export overlays during generation\n\nDecision: watermark and page numbers are applied during export.\nReason: this avoids a more complex live annotation editor while still covering common output needs.\n"],
+      ["Data Model", "# Data Model\n\nThis project was generated with the assistance of Codex AI and prompted by Ustselemov.\n\n## Primary In-Memory Entities\n\n### SourceDocument\n\n- `id`\n- `type` (`pdf` or `image`)\n- `name`\n- `bytes`\n- `pageCount`\n- optional preview/runtime handles such as `pdfjsDoc`, `objectUrl`, `width`, `height`\n\n### WorkspacePage\n\n- `id`\n- `sourceDocId`\n- `sourceType`\n- `sourceName`\n- `sourcePageIndex`\n- `baseRotation`\n- `rotation`\n\n### OverlaySettings\n\n- `watermarkText`\n- `watermarkPreset`\n- `pageNumbersEnabled`\n- `pageNumberFormat`\n- `pageNumberPreset`\n"],
+      ["API Reference", "# API Reference\n\nThis project was generated with the assistance of Codex AI and prompted by Ustselemov.\n\n## Runtime Surface\n\nThe application is a browser-only UI, not a network API. Its runtime behavior is driven by DOM events in `app.js`, with helper modules in `src/` handling file detection, image loading, workspace operations, split parsing, overlay rendering, stamp editing, JPEG presets, export flow, and browser smoke hooks.\n\n## Supported User Operations\n\n- Import local PDF files\n- Import local JPG and PNG files\n- Reorder pages\n- Rotate pages\n- Delete pages\n- Extract pages through export\n- Split the workspace by page ranges\n- Apply watermark and page-number overlays during export\n- Open a fullscreen image stamp editor for per-page stamp placement\n- Export to PDF or JPEG\n\n## Test Hooks\n\nBrowser smoke coverage uses `src/test-hooks.js`, which exposes a temporary `LocalPdfToolkitTestApi` on `globalThis` during runtime for automated local verification.\n"],
+      ["Development Guide", "# Development Guide\n\nThis project was generated with the assistance of Codex AI and prompted by Ustselemov.\n\n## Local Setup\n\n1. Install Node.js 20+.\n2. Run `npm install`.\n3. Open `index.html` directly in a current Chromium-based browser.\n\n## Configuration\n\n- The current browser-only build does not require secrets.\n- `.env.example` is included so future contributors have a standard configuration entry point.\n- Real secrets must never be committed and must remain in local untracked `.env` files.\n\n## Source Areas\n\n- `app.js` for browser orchestration and DOM wiring\n- `src/common-helpers.js` for shared utility logic\n- `src/file-helpers.js` and `src/image-helpers.js` for import handling\n- `src/workspace-helpers.js` for page-level workspace operations\n- `src/overlay-helpers.js` and `src/split-helpers.js` for overlay and split rules\n- `src/stamp-helpers.js` and `src/stamp-editor.js` for image stamp behavior\n- `src/jpeg-helpers.js`, `src/export-helpers.js`, and `src/export-controller.js` for export presets, downloads, and export flow\n- `src/test-hooks.js` for browser smoke integration\n- `src/pdf-ops.mjs` for helper logic under test\n- `sample-files/` for manual verification assets\n- `vendor/` for browser runtime libraries\n- `docs/` for product and engineering documentation\n\n## Change Discipline\n\n- Keep the core workflow offline-only.\n- Preserve the no-backend architecture unless the product direction changes explicitly.\n- Keep new logic in focused modules when it can be isolated from DOM orchestration.\n- Update docs when export behavior, supported formats, or module boundaries change.\n- Treat root-level legacy planning files as historical artifacts, not canonical engineering docs.\n"],
+      ["Testing", "# Testing\n\nThis project was generated with the assistance of Codex AI and prompted by Ustselemov.\n\n## Automated Checks\n\nRun:\n\n- `npm.cmd test`\n- `npm.cmd run test:browser`\n\nCurrent automated coverage includes:\n\n- rotation normalization\n- reorder logic\n- split parsing\n- export order and relative rotation handling\n- browser smoke coverage for the `file://` flow using local sample files\n\n## Manual Checks\n\nRecommended manual checks in browser:\n\n- import PDF and image files\n- drag reorder pages\n- export as PDF\n- export as JPEG\n- apply watermark and page numbers\n- open the fullscreen image stamp editor\n- place, save, remove, and re-export a page stamp\n- verify JPEG preset details shown in the export modal\n- validate with files from `sample-files/`\n\n## Known Gaps\n\n- Browser smoke coverage exists for the `file://` flow, but it is still a lightweight smoke test rather than a full UI automation suite.\n- Performance and download behavior for many simultaneous JPEG exports depend partly on browser policy.\n"],
+      ["Roadmap", "# Roadmap\n\nThis project was generated with the assistance of Codex AI and prompted by Ustselemov.\n\n## Current\n\n- Stable offline page workspace\n- PDF and JPEG export\n- Watermark and page number overlays\n- Fullscreen image stamp editor\n- Modular browser runtime split across focused helper modules\n\n## Next\n\n- Better JPEG export diagnostics and file size estimation\n- Additional export presets\n- More browser-level regression coverage for the `file://` workflow\n\n## Later\n\n- Crop\n- Metadata editing\n- Batch workflows\n- More advanced overlay tools\n"],
+      ["Security", "# Security\n\nThis project was generated with the assistance of Codex AI and prompted by Ustselemov.\n\n## Secrets\n\nThe current build does not require runtime secrets.\n\n## Recommended Configuration\n\n- Keep secrets in local untracked `.env` files only if the project grows new integrations.\n- Never hardcode credentials, API keys, tokens, or private certificates in source files.\n- Preserve `.env.example` as a template with placeholder values only.\n\n## Repository Safety\n\n- `.env` files are ignored\n- key and certificate file patterns are ignored\n- development logs are ignored\n- dependency directories are ignored\n\n## User Data Handling\n\n- files are processed locally in the browser session\n- there is no backend upload path in the current product\n- contributors should preserve this privacy model unless the architecture is intentionally changed\n\n## Potential Risks\n\n- browser extensions or compromised local environments can still observe local activity\n- multiple automatic downloads may be restricted by browser security settings\n- very large documents can increase memory pressure inside the browser process\n\n## Safe Deployment Practices\n\n- publish the repository without secrets or sample private documents\n- document any future network behavior before introducing it\n- if a hosted version is ever introduced, explicitly document what data leaves the client\n"],
+      ["Architecture Diagram", "# Architecture Diagram\n\n```mermaid\nflowchart TD\n    User[\"User Browser Session\"] --> UI[\"index.html + styles.css\"]\n    UI --> Runtime[\"app.js orchestration\"]\n    Runtime --> Preview[\"pdf.js preview rendering\"]\n    Runtime --> ExportCore[\"pdf-lib export composition\"]\n    Runtime --> Workspace[\"workspace-helpers\"]\n    Runtime --> Overlay[\"overlay-helpers\"]\n    Runtime --> Split[\"split-helpers\"]\n    Runtime --> Stamp[\"stamp-helpers + stamp-editor\"]\n    Runtime --> ExportFlow[\"export-helpers + export-controller + jpeg-helpers\"]\n    Runtime --> TestHooks[\"test-hooks\"]\n    Runtime --> Tested[\"pdf-ops.mjs tested helpers\"]\n    Runtime --> Vendor[\"vendor runtime assets\"]\n```\n"]
+    ]);
+    const nav = document.getElementById('nav');
     const content = document.getElementById('content');
-    const links = [...document.querySelectorAll('[data-doc]')];
+    const titles = [...DOCS.keys()];
 
     function escapeHtml(value) {
-      return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+      return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;');
+    }
+
+    function inlineMarkdown(text) {
+      return escapeHtml(text)
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
     }
 
     function renderMarkdown(md) {
-      const blocks = md.split(/\n\n+/).map((block) => block.trim()).filter(Boolean);
-      return blocks.map((block) => {
-        if (block.startsWith('```')) {
-          const code = block.replace(/^```[\w-]*\n?/, '').replace(/```$/, '');
-          return `<pre><code>${escapeHtml(code)}</code></pre>`;
+      const lines = md.replace(/\r/g, '').split('\n');
+      const parts = [];
+      let i = 0;
+      while (i < lines.length) {
+        const line = lines[i];
+        if (!line.trim()) { i += 1; continue; }
+        if (line.startsWith('```')) {
+          const fence = [];
+          i += 1;
+          while (i < lines.length && !lines[i].startsWith('```')) {
+            fence.push(lines[i]);
+            i += 1;
+          }
+          i += 1;
+          parts.push('<pre><code>' + escapeHtml(fence.join('\n')) + '</code></pre>');
+          continue;
         }
-        if (block.startsWith('# ')) return `<h1>${escapeHtml(block.slice(2))}</h1>`;
-        if (block.startsWith('## ')) return `<h2>${escapeHtml(block.slice(3))}</h2>`;
-        if (block.startsWith('### ')) return `<h3>${escapeHtml(block.slice(4))}</h3>`;
-        if (block.split('\n').every((line) => line.startsWith('- '))) {
-          const items = block.split('\n').map((line) => `<li>${escapeHtml(line.slice(2))}</li>`).join('');
-          return `<ul>${items}</ul>`;
+        if (line.startsWith('# ')) { parts.push('<h1>' + inlineMarkdown(line.slice(2)) + '</h1>'); i += 1; continue; }
+        if (line.startsWith('## ')) { parts.push('<h2>' + inlineMarkdown(line.slice(3)) + '</h2>'); i += 1; continue; }
+        if (line.startsWith('### ')) { parts.push('<h3>' + inlineMarkdown(line.slice(4)) + '</h3>'); i += 1; continue; }
+        if (line.startsWith('- ')) {
+          const items = [];
+          while (i < lines.length && lines[i].startsWith('- ')) {
+            items.push('<li>' + inlineMarkdown(lines[i].slice(2)) + '</li>');
+            i += 1;
+          }
+          parts.push('<ul>' + items.join('') + '</ul>');
+          continue;
         }
-        return `<p>${escapeHtml(block)}</p>`;
+        const paragraph = [];
+        while (i < lines.length && lines[i].trim() && !lines[i].startsWith('#') && !lines[i].startsWith('- ') && !lines[i].startsWith('```')) {
+          paragraph.push(lines[i]);
+          i += 1;
+        }
+        parts.push('<p>' + inlineMarkdown(paragraph.join(' ')) + '</p>');
+      }
+      return parts.join('');
+    }
+
+    function renderNav(activeTitle) {
+      nav.innerHTML = '<h1>Documentation</h1>' + titles.map((title) => {
+        const active = title === activeTitle ? 'true' : 'false';
+        return '<a href="#' + encodeURIComponent(title) + '" data-title="' + title.replace(/"/g, '&quot;') + '" data-active="' + active + '">' + title + '</a>';
       }).join('');
     }
 
-    async function loadDoc(path) {
-      const response = await fetch(path);
-      const text = await response.text();
-      content.innerHTML = renderMarkdown(text);
+    function renderDoc(title) {
+      const safeTitle = DOCS.has(title) ? title : titles[0];
+      content.innerHTML = renderMarkdown(DOCS.get(safeTitle));
+      renderNav(safeTitle);
     }
 
-    links.forEach((link) => {
-      link.addEventListener('click', async (event) => {
-        event.preventDefault();
-        await loadDoc(link.dataset.doc);
-      });
+    window.addEventListener('hashchange', () => {
+      const title = decodeURIComponent(location.hash.slice(1) || titles[0]);
+      renderDoc(title);
     });
 
-    loadDoc('../PRODUCT_OVERVIEW.md');
+    nav.addEventListener('click', (event) => {
+      const link = event.target.closest('[data-title]');
+      if (!link) return;
+      event.preventDefault();
+      location.hash = encodeURIComponent(link.dataset.title);
+    });
+
+    renderDoc(decodeURIComponent(location.hash.slice(1) || titles[0]));
   </script>
 </body>
 </html>
+

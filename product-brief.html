@@ -3,22 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Private Offline PDF Toolkit - Product Brief</title>
+  <title>Local PDF Toolkit - Product Brief</title>
   <style>
     :root {
-      --bg: #f4f1ea;
+      --bg: #f3efe7;
       --paper: #fffdf9;
       --ink: #1e2529;
       --muted: #667178;
       --line: rgba(30, 37, 41, 0.12);
       --accent: #0f766e;
-      --soft: rgba(15, 118, 110, 0.08);
+      --accent-soft: rgba(15, 118, 110, 0.08);
       --warn: #8a5b12;
+      --warn-soft: rgba(138, 91, 18, 0.08);
       --ok: #146c43;
       --ok-soft: rgba(20, 108, 67, 0.08);
       --shadow: 0 18px 44px rgba(30, 37, 41, 0.08);
     }
-
     * { box-sizing: border-box; }
     html, body { margin: 0; }
     body {
@@ -27,9 +27,8 @@
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       line-height: 1.55;
     }
-
     .page {
-      width: min(1040px, calc(100% - 24px));
+      width: min(1080px, calc(100% - 24px));
       margin: 12px auto 32px;
       padding: 24px;
       border: 1px solid var(--line);
@@ -37,126 +36,48 @@
       background: var(--paper);
       box-shadow: var(--shadow);
     }
-
     .eyebrow {
       display: inline-block;
       padding: 6px 10px;
       border-radius: 999px;
-      background: var(--soft);
+      background: var(--accent-soft);
       color: var(--accent);
       font-size: 12px;
       letter-spacing: 0.08em;
       text-transform: uppercase;
     }
-
-    .badge-ok {
-      display: inline-block;
-      margin-top: 8px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: var(--ok-soft);
-      color: var(--ok);
-      font-size: 12px;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-    }
-
-    h1, h2, h3 {
-      margin: 0 0 12px;
-      line-height: 1.08;
-    }
-
-    h1 {
-      margin-top: 14px;
-      font-size: clamp(34px, 5vw, 60px);
-      max-width: 12ch;
-    }
-
-    h2 {
-      margin-top: 30px;
-      font-size: 26px;
-    }
-
-    h3 {
-      margin-top: 8px;
-      font-size: 20px;
-    }
-
-    p {
-      margin: 0 0 12px;
-      font-size: 17px;
-      color: var(--ink);
-    }
-
-    .lead {
-      font-size: 20px;
-      max-width: 42em;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
-      margin-top: 16px;
-    }
-
+    h1, h2, h3 { margin: 0 0 12px; line-height: 1.08; }
+    h1 { margin-top: 14px; font-size: clamp(34px, 5vw, 60px); max-width: 12ch; }
+    h2 { margin-top: 30px; font-size: 26px; }
+    h3 { margin-top: 8px; font-size: 20px; }
+    p { margin: 0 0 12px; font-size: 17px; }
+    .lead { font-size: 20px; max-width: 42em; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
     .card {
       padding: 16px;
       border: 1px solid var(--line);
       border-radius: 18px;
-      background: rgba(255, 255, 255, 0.7);
+      background: rgba(255,255,255,0.72);
     }
-
-    .card--accent {
-      background: var(--soft);
-    }
-
-    .card--warn {
-      background: rgba(138, 91, 18, 0.07);
-    }
-
-    .card--ok {
-      background: var(--ok-soft);
-    }
-
-    ul {
-      margin: 10px 0 0;
-      padding-left: 18px;
-    }
-
-    li {
-      margin-bottom: 8px;
-      color: var(--muted);
-      font-size: 16px;
-    }
-
-    .table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 12px;
-    }
-
-    .table th,
-    .table td {
+    .card--ok { background: var(--ok-soft); }
+    .card--warn { background: var(--warn-soft); }
+    ul { margin: 10px 0 0; padding-left: 18px; }
+    li { margin-bottom: 8px; color: var(--muted); font-size: 16px; }
+    .table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    .table th, .table td {
       padding: 12px 10px;
       text-align: left;
       vertical-align: top;
       border-bottom: 1px solid var(--line);
       font-size: 15px;
     }
-
-    .table th {
-      color: var(--accent);
-      font-weight: 700;
-    }
-
+    .table th { color: var(--accent); font-weight: 700; }
     code {
       padding: 1px 6px;
       border-radius: 8px;
       background: rgba(30, 37, 41, 0.07);
       font-size: 0.94em;
     }
-
     .footer {
       margin-top: 28px;
       padding-top: 14px;
@@ -164,284 +85,145 @@
       color: var(--muted);
       font-size: 14px;
     }
-
-    @media (max-width: 800px) {
+    @media (max-width: 860px) {
       .grid { grid-template-columns: 1fr; }
-      .page {
-        width: min(100% - 12px, 1040px);
-        padding: 16px;
-      }
+      .page { width: min(100% - 12px, 1080px); padding: 16px; }
     }
   </style>
 </head>
 <body>
   <main class="page">
     <div class="eyebrow">Product Brief</div>
-    <h1>Private Offline PDF Toolkit</h1>
+    <h1>Local PDF Toolkit</h1>
     <p class="lead">
       Локальный браузерный PDF toolkit без сервера, без Python, без Docker и без загрузки личных файлов на сторонние сайты.
     </p>
     <p>
-      Идея продукта: пользователь открывает локальный HTML-файл, добавляет PDF с компьютера и выполняет базовые page-level операции полностью на устройстве.
+      Текущее состояние: это уже рабочее offline browser-приложение для page-level операций с PDF и изображениями. Ниже зафиксировано только фактическое состояние продукта: что уже есть, чего еще нет и что делать дальше.
     </p>
 
     <section>
-      <h2>Продуктовое обещание</h2>
+      <h2>Что это за продукт</h2>
       <div class="grid">
-        <article class="card card--accent">
-          <h3>Что обещаем</h3>
+        <article class="card card--ok">
+          <h3>Что уже подтверждено</h3>
           <ul>
-            <li>Работа полностью локально в браузере.</li>
-            <li>Без аккаунта, без облака, без серверной обработки файлов.</li>
-            <li>Фокус на операциях со страницами PDF, а не на сложной редактуре содержимого.</li>
+            <li>Работает локально в браузере.</li>
+            <li>Не требует backend, Python, Docker или серверной обработки файлов.</li>
+            <li>Фокусируется на операциях со страницами и экспорте, а не на глубоком редактировании содержимого PDF.</li>
           </ul>
         </article>
         <article class="card card--warn">
-          <h3>Что не обещаем</h3>
+          <h3>Чего продукт сейчас не делает</h3>
           <ul>
-            <li>Редактирование текста внутри PDF как в Word.</li>
-            <li>OCR для сканов.</li>
-            <li>Профессиональное сжатие уровня desktop-редакторов.</li>
-            <li>Сертификатные цифровые подписи.</li>
+            <li>Не редактирует текст внутри PDF как в Word.</li>
+            <li>Не делает OCR для сканов.</li>
+            <li>Не делает продвинутое сжатие уровня desktop PDF-редакторов.</li>
+            <li>Не поддерживает сертификатные цифровые подписи.</li>
           </ul>
         </article>
       </div>
     </section>
 
     <section>
-      <h2>MVP 1</h2>
-      <p>
-        Первая версия должна заменить типичный онлайн PDF tool для самых частых сценариев, сохранив приватность пользователя.
-      </p>
-      <div class="badge-ok">Implemented</div>
+      <h2>Полный список того, что уже есть</h2>
       <table class="table">
         <thead>
           <tr>
             <th>Функция</th>
-            <th>Статус в MVP 1</th>
+            <th>Статус</th>
             <th>Комментарий</th>
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td>Открытие локальных PDF</td>
-            <td>Сделано</td>
-            <td>Через click-to-upload и drag-and-drop.</td>
-          </tr>
-          <tr>
-            <td>Просмотр страниц</td>
-            <td>Сделано</td>
-            <td>Через реальные thumbnails страниц PDF.</td>
-          </tr>
-          <tr>
-            <td>Изменение порядка страниц</td>
-            <td>Сделано</td>
-            <td>Через drag-and-drop и шаговые стрелки.</td>
-          </tr>
-          <tr>
-            <td>Поворот страниц</td>
-            <td>Сделано</td>
-            <td>Для одной страницы и для выделения.</td>
-          </tr>
-          <tr>
-            <td>Удаление страниц</td>
-            <td>Сделано</td>
-            <td>Для одной страницы и для выделения.</td>
-          </tr>
-          <tr>
-            <td>Извлечение страниц</td>
-            <td>Сделано</td>
-            <td>Одной страницы или выбранного набора.</td>
-          </tr>
-          <tr>
-            <td>Split по диапазонам</td>
-            <td>Сделано</td>
-            <td>Например: <code>1-3|4-6|7</code>.</td>
-          </tr>
-          <tr>
-            <td>Merge PDF</td>
-            <td>Сделано</td>
-            <td>Через workspace export в текущем порядке страниц.</td>
-          </tr>
-          <tr>
-            <td>Сохранение результата локально</td>
-            <td>Сделано</td>
-            <td>Финальный PDF сохраняется на устройство.</td>
-          </tr>
+          <tr><td>Импорт локальных PDF</td><td>Есть</td><td>Через click-to-upload и drag-and-drop.</td></tr>
+          <tr><td>Импорт JPG и PNG</td><td>Есть</td><td>Изображения попадают в тот же workspace.</td></tr>
+          <tr><td>Просмотр страниц</td><td>Есть</td><td>Через реальные thumbnails страниц.</td></tr>
+          <tr><td>Изменение порядка страниц</td><td>Есть</td><td>Через drag-and-drop и шаговые стрелки на карточках.</td></tr>
+          <tr><td>Поворот страниц</td><td>Есть</td><td>Для одной страницы и для выделения.</td></tr>
+          <tr><td>Удаление страниц</td><td>Есть</td><td>Для одной страницы и для выделения.</td></tr>
+          <tr><td>Выбор нескольких страниц</td><td>Есть</td><td>Через checkbox и клик по карточке.</td></tr>
+          <tr><td>Извлечение страницы или набора страниц</td><td>Есть</td><td>Через export отдельной страницы или выбранного набора.</td></tr>
+          <tr><td>Split по диапазонам</td><td>Есть</td><td>Например <code>1-3|4-6|7</code>.</td></tr>
+          <tr><td>Merge</td><td>Есть</td><td>Через export текущего workspace в текущем порядке страниц.</td></tr>
+          <tr><td>Экспорт в PDF</td><td>Есть</td><td>Для одной страницы, выделения или всего workspace.</td></tr>
+          <tr><td>Экспорт в JPEG</td><td>Есть</td><td>Для одной страницы или набора страниц.</td></tr>
+          <tr><td>Выбор формата экспорта</td><td>Есть</td><td><code>PDF</code> или <code>JPEG</code>.</td></tr>
+          <tr><td>JPEG quality presets</td><td>Есть</td><td>Есть пресеты качества и расчет ожидаемого размера первой страницы в пикселях.</td></tr>
+          <tr><td>Watermark</td><td>Есть</td><td>Текстовый overlay с preset-позициями.</td></tr>
+          <tr><td>Page numbers</td><td>Есть</td><td>Формат и preset-позиции доступны в UI.</td></tr>
+          <tr><td>Fullscreen image stamp editor</td><td>Есть</td><td>Можно загрузить PNG/JPG штамп, двигать, менять размер, сохранить или удалить.</td></tr>
+          <tr><td>Применение штампа в preview</td><td>Есть</td><td>Штамп виден в страницах после сохранения.</td></tr>
+          <tr><td>Применение штампа при PDF export</td><td>Есть</td><td>Штамп дорисовывается в итоговый PDF.</td></tr>
+          <tr><td>Применение штампа при JPEG export</td><td>Есть</td><td>Штамп дорисовывается в итоговые JPEG.</td></tr>
+          <tr><td>Smoke test для file:// flow</td><td>Есть</td><td>Есть browser smoke test на headless Chrome.</td></tr>
+          <tr><td>Sample files</td><td>Есть</td><td>В проекте есть sample PDF и sample stamp images.</td></tr>
         </tbody>
       </table>
     </section>
 
     <section>
-      <h2>Что именно значит MVP 2</h2>
+      <h2>Что еще не реализовано</h2>
       <div class="grid">
-        <article class="card">
-          <h3>Watermarks</h3>
-          <p>
-            В первой реалистичной версии watermark это текстовая надпись, которая автоматически рисуется поверх выбранных страниц при экспорте. Базовый и понятный вариант: одна крупная полупрозрачная надпись по центру страницы по диагонали, например <code>DRAFT</code> или <code>CONFIDENTIAL</code>.
-          </p>
-          <p>
-            На первом шаге watermark не нужно делать свободно перетаскиваемым. Реалистичнее дать готовые пресеты: <code>center diagonal</code>, <code>top center</code>, <code>bottom center</code>.
-          </p>
-        </article>
-        <article class="card">
-          <h3>Page Numbers</h3>
-          <p>
-            Page numbers это не магическая встроенная функция PDF, которая сама появляется из стандарта. Для локального web app это обычный текстовый overlay, который мы сами дорисовываем на страницу при экспорте: например <code>1</code>, <code>2</code> или <code>Page 1 of 10</code>.
-          </p>
-          <p>
-            Для первой версии это должно быть просто и предсказуемо: по умолчанию внизу справа, с несколькими пресетами вроде <code>bottom right</code>, <code>bottom center</code>, <code>top right</code>.
-          </p>
-        </article>
-        <article class="card card--ok">
-          <h3>Image to PDF</h3>
-          <p>
-            Это уже идет в правильную сторону продукта: изображения <code>JPG/PNG</code> загружаются в то же окно, становятся страницами общего workspace и дальше двигаются, удаляются, поворачиваются и экспортируются вместе с PDF-страницами.
-          </p>
-        </article>
-        <article class="card">
-          <h3>Image Stamps</h3>
-          <p>
-            Image stamp это уже не просто импорт картинки, а наложение изображения поверх страницы: подпись, печать, логотип, скан автографа. Если делать это хорошо, stamp действительно должен ставиться в нужное место страницы, а не абстрактно "куда-то сверху".
-          </p>
-          <p>
-            Поэтому свободное позиционирование image stamp логично относить не к первому срезу MVP 2, а к отдельному fullscreen page editor, где можно открыть одну страницу крупно и двигать stamp мышкой.
-          </p>
-        </article>
-      </div>
-    </section>
-
-    <section>
-      <h2>Первый срез MVP 2</h2>
-      <div class="grid">
-        <article class="card card--ok">
-          <h3>Уже сделано в коде</h3>
-          <ul>
-            <li>Landing принимает <code>PDF</code>, <code>JPG</code> и <code>PNG</code>.</li>
-            <li>Watermark с пресетами позиции уже добавлен в рабочий UI.</li>
-            <li>Page numbers с форматом и пресетами позиции уже добавлены в рабочий UI.</li>
-            <li>Изображения попадают в тот же workspace, что и PDF.</li>
-            <li>При экспорте одной страницы можно выбрать <code>PDF</code> или <code>JPEG</code>.</li>
-            <li>При экспорте всего workspace тоже можно выбрать <code>PDF</code> или <code>JPEG</code>.</li>
-          </ul>
-        </article>
-        <article class="card">
-          <h3>Что важно помнить</h3>
-          <p>
-            Экспорт нескольких страниц в <code>JPEG</code> в браузере означает выгрузку нескольких файлов, обычно по одному файлу на страницу. Это нормально для локального браузерного инструмента, но зависит от настроек браузера на множественные скачивания.
-          </p>
-        </article>
-      </div>
-    </section>
-
-    <section>
-      <h2>Полный функционал по этапам</h2>
-      <div class="grid">
-        <article class="card card--ok">
-          <h3>MVP 1</h3>
-          <ul>
-            <li>Открытие локальных PDF.</li>
-            <li>Просмотр страниц.</li>
-            <li>Reorder страниц.</li>
-            <li>Rotate страниц.</li>
-            <li>Delete страниц.</li>
-            <li>Extract страниц.</li>
-            <li>Split по диапазонам.</li>
-            <li>Merge через export workspace.</li>
-            <li>Локальное сохранение результата.</li>
-          </ul>
-        </article>
-        <article class="card">
-          <h3>MVP 2</h3>
-          <ul>
-            <li>Watermarks. <strong>Сделано.</strong></li>
-            <li>Page numbers. <strong>Сделано.</strong></li>
-            <li>Image to PDF в том же окне. <strong>Сделано.</strong></li>
-            <li>Экспорт страниц в <code>JPEG</code>. <strong>Сделано.</strong></li>
-            <li>Выбор формата экспорта: <code>PDF</code> или <code>JPEG</code>. <strong>Сделано.</strong></li>
-            <li>Fullscreen image stamps editor. <strong>Сделано.</strong></li>
-          </ul>
-        </article>
-        <article class="card">
-          <h3>MVP 3</h3>
+        <article class="card card--warn">
+          <h3>Функции, которых сейчас нет</h3>
           <ul>
             <li>Crop страниц.</li>
             <li>Metadata editing.</li>
-            <li>Batch operations.</li>
-            <li>Flatten overlays.</li>
-            <li>Более гибкий export flow.</li>
-          </ul>
-        </article>
-        <article class="card card--warn">
-          <h3>Research / Later</h3>
-          <ul>
+            <li>Batch workflows.</li>
+            <li>Flatten/export presets beyond the current flow.</li>
             <li>OCR.</li>
             <li>Advanced compression.</li>
             <li>Digital signing.</li>
-            <li>Расширенное редактирование форм.</li>
+            <li>Редактирование текста внутри PDF.</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>Текущие ограничения</h3>
+          <ul>
+            <li>Множественные JPEG-загрузки зависят от browser download policy.</li>
+            <li>Browser smoke test уже есть, но это еще не полноценный UI regression suite.</li>
+            <li>Проект стал модульнее, но <code>app.js</code> все еще остается orchestration entrypoint.</li>
           </ul>
         </article>
       </div>
     </section>
 
     <section>
-      <h2>Roadmap</h2>
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Версия</th>
-            <th>Цель</th>
-            <th>Что входит</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>1.0</td>
-            <td>Безопасная offline-замена онлайн PDF-утилитам.</td>
-            <td>Импорт, просмотр, reorder, rotate, delete, extract, split, merge, export.</td>
-          </tr>
-          <tr>
-            <td>1.1</td>
-            <td>Расширить экспорт и работу с визуальными надстройками.</td>
-            <td>Watermarks, page numbers, экспорт страниц в JPEG, выбор формата экспорта. Этот этап уже реализован без image stamps editor.</td>
-          </tr>
-          <tr>
-            <td>1.2</td>
-            <td>Расширить бытовые сценарии.</td>
-            <td>Fullscreen image stamps editor, metadata work, более точечные page overlays. Image stamps editor уже реализован.</td>
-          </tr>
-          <tr>
-            <td>2.0</td>
-            <td>Сделать toolkit более зрелым.</td>
-            <td>Batch operations, crop, flatten, дополнительные export settings.</td>
-          </tr>
-        </tbody>
-      </table>
-    </section>
-
-    <section>
-      <h2>Техническая архитектура</h2>
+      <h2>Текущая архитектура</h2>
       <div class="grid">
         <article class="card">
-          <h3>Frontend shell</h3>
+          <h3>Application shell</h3>
           <ul>
-            <li><code>HTML</code> для структуры.</li>
-            <li><code>CSS</code> для минималистичного UI.</li>
-            <li><code>JavaScript</code> для всего поведения.</li>
+            <li><code>index.html</code> для структуры UI.</li>
+            <li><code>styles.css</code> для presentation layer.</li>
+            <li><code>app.js</code> как entrypoint и orchestration layer.</li>
           </ul>
         </article>
         <article class="card">
-          <h3>PDF rendering</h3>
+          <h3>Browser modules</h3>
           <ul>
-            <li>Локальный browser-side preview через PDF.js.</li>
+            <li><code>src/common-helpers.js</code></li>
+            <li><code>src/file-helpers.js</code></li>
+            <li><code>src/image-helpers.js</code></li>
+            <li><code>src/overlay-helpers.js</code></li>
+            <li><code>src/split-helpers.js</code></li>
+            <li><code>src/workspace-helpers.js</code></li>
+            <li><code>src/stamp-helpers.js</code></li>
+            <li><code>src/stamp-editor.js</code></li>
+            <li><code>src/jpeg-helpers.js</code></li>
+            <li><code>src/export-helpers.js</code></li>
+            <li><code>src/export-controller.js</code></li>
+            <li><code>src/test-hooks.js</code></li>
+            <li><code>src/pdf-ops.mjs</code></li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>PDF stack</h3>
+          <ul>
+            <li><code>pdf.js</code> для preview rendering.</li>
+            <li><code>pdf-lib</code> для PDF composition и export overlays.</li>
             <li>Никаких внешних API.</li>
-          </ul>
-        </article>
-        <article class="card">
-          <h3>PDF manipulation</h3>
-          <ul>
-            <li>Локальная генерация и перестройка PDF через browser-side библиотеку.</li>
-            <li>Фокус на page-level операциях.</li>
           </ul>
         </article>
         <article class="card">
@@ -449,37 +231,41 @@
           <ul>
             <li>Статическая папка файлов.</li>
             <li>Запуск прямым открытием <code>index.html</code>.</li>
-            <li>Без backend и без local server.</li>
+            <li>Работа через <code>file://</code>.</li>
           </ul>
         </article>
       </div>
     </section>
 
     <section>
-      <h2>Нефункциональные требования</h2>
-      <ul>
-        <li>Приложение должно работать без интернета в обычном сценарии.</li>
-        <li>Приложение не должно отправлять PDF пользователя на сервер.</li>
-        <li>UI должен оставаться минималистичным и понятным.</li>
-        <li>Критичные действия должны быть доступны максимум за 1-2 клика после загрузки PDF.</li>
-        <li>Поведение должно быть совместимо с обычным открытием локального HTML-файла.</li>
-      </ul>
+      <h2>Что логично делать дальше</h2>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Приоритет</th>
+            <th>Следующий шаг</th>
+            <th>Зачем</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>Crop страниц</td><td>Это следующий очевидный page-level feature.</td></tr>
+          <tr><td>2</td><td>Metadata editing</td><td>Полезно для бытового PDF workflow.</td></tr>
+          <tr><td>3</td><td>More browser regression tests</td><td>Чтобы снизить риск UI-regressions.</td></tr>
+          <tr><td>4</td><td>Batch workflows</td><td>Усилит сценарии с несколькими файлами.</td></tr>
+        </tbody>
+      </table>
     </section>
 
     <section>
-      <h2>Итог</h2>
+      <h2>Итоговая формулировка продукта</h2>
       <p>
-        Самая сильная формулировка продукта для первой версии:
-      </p>
-      <p>
-        <strong>Локальный браузерный инструмент для просмотра, перестановки, удаления, поворота, извлечения, разделения и объединения PDF-страниц без загрузки файлов на сервер.</strong>
+        <strong>Локальный браузерный инструмент для импорта PDF, JPG и PNG, просмотра страниц, перестановки, удаления, поворота, извлечения, разделения, объединения и экспорта в PDF или JPEG без загрузки файлов на сервер.</strong>
       </p>
     </section>
 
     <div class="footer">
-      Этот документ создан отдельно от рабочего приложения. Основной runtime-файл приложения остается в <code>index.html</code>.
+      Этот документ отражает текущее фактическое состояние проекта. Он не разделен на старые MVP-этапы и обновлен под текущую реализацию.
     </div>
   </main>
 </body>
 </html>
-

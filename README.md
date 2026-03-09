@@ -1,4 +1,4 @@
-﻿# Local PDF Toolkit
+# Local PDF Toolkit
 
 This project was generated with the assistance of Codex AI and prompted by Ustselemov. AI-generated code and documentation may contain errors or incorrect assumptions. Human review is recommended before production, security-sensitive, or business-critical use.
 
@@ -19,18 +19,29 @@ Current supported workflow:
 
 1. Install Node.js 20+ if you want to run tests.
 2. Run `npm install`.
-3. Open [index.html](D:/VibeCoding/private-offline-pdf-toolkit/index.html) directly in a current Chromium-based browser.
+3. Open `index.html` directly in a current Chromium-based browser.
 
 ## Repository Structure
 
-- [index.html](D:/VibeCoding/private-offline-pdf-toolkit/index.html): application shell
-- [styles.css](D:/VibeCoding/private-offline-pdf-toolkit/styles.css): UI styles
-- [app.js](D:/VibeCoding/private-offline-pdf-toolkit/app.js): browser entrypoint and orchestration
-- [src](D:/VibeCoding/private-offline-pdf-toolkit/src): focused browser helper modules and tested logic
-- [sample-files](D:/VibeCoding/private-offline-pdf-toolkit/sample-files): sample PDFs and stamp images for manual checks
-- [tests](D:/VibeCoding/private-offline-pdf-toolkit/tests): automated checks
-- [docs](D:/VibeCoding/private-offline-pdf-toolkit/docs): product and engineering documentation
-- [vendor](D:/VibeCoding/private-offline-pdf-toolkit/vendor): vendored browser libraries
+- `index.html`: application shell
+- `styles.css`: UI styles
+- `app.js`: browser entrypoint and orchestration layer
+- `src/common-helpers.js`: shared utility functions
+- `src/file-helpers.js`: supported file and MIME detection
+- `src/image-helpers.js`: browser image loading helpers
+- `src/workspace-helpers.js`: page selection, move, rotate, delete, and filename helpers
+- `src/overlay-helpers.js`: watermark and page-number rendering for canvas and PDF
+- `src/stamp-helpers.js`: stamp geometry helpers
+- `src/stamp-editor.js`: fullscreen image stamp editor controller
+- `src/jpeg-helpers.js`: JPEG presets and export detail formatting
+- `src/export-helpers.js`: browser download helpers
+- `src/export-controller.js`: export modal and export-flow controller
+- `src/test-hooks.js`: browser smoke-test hooks
+- `src/pdf-ops.mjs`: tested PDF helper logic
+- `sample-files/`: sample PDFs and stamp images for manual checks
+- `tests/`: automated checks
+- `docs/`: product and engineering documentation
+- `vendor/`: vendored browser libraries
 
 ## Usage
 
@@ -51,6 +62,7 @@ Current supported workflow:
 Run:
 
 - `npm.cmd test`
+- `npm.cmd run test:browser`
 
 ## Troubleshooting
 
