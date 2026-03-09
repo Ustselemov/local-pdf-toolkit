@@ -1,23 +1,24 @@
 ﻿{
-  "name": "local-pdf-toolkit",
-  "version": "0.2.0",
-  "description": "Offline-first browser PDF toolkit for local page operations and export overlays.",
-  "type": "module",
-  "license": "MIT",
-  "author": "Ustselemov",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Ustselemov/local-pdf-toolkit.git"
-  },
-  "engines": {
-    "node": ">=20"
-  },
-  "scripts": {
-    "test": "node ./tests/run-tests.mjs",
-    "samples": "node ./tools/generate-samples.mjs"
-  },
-  "dependencies": {
-    "pdf-lib": "^1.17.1",
-    "pdfjs-dist": "^2.16.105"
-  }
+    "name":  "local-pdf-toolkit",
+    "version":  "0.2.0",
+    "description":  "Offline-first browser PDF toolkit for local page operations and export overlays.",
+    "type":  "module",
+    "license":  "MIT",
+    "author":  "Ustselemov",
+    "repository":  {
+                       "type":  "git",
+                       "url":  "https://github.com/Ustselemov/local-pdf-toolkit.git"
+                   },
+    "engines":  {
+                    "node":  "\u003e=20"
+                },
+    "scripts":  {
+                    "test":  "node ./tests/run-tests.mjs",
+                    "samples":  "node ./tools/generate-samples.mjs",
+                    "test:browser":  "node ./tests/browser-smoke.mjs"
+                },
+    "dependencies":  {
+                         "pdf-lib":  "^1.17.1",
+                         "pdfjs-dist":  "^2.16.105"
+                     }
 }

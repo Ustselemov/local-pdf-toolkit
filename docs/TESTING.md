@@ -7,6 +7,7 @@ This project was generated with the assistance of Codex AI and prompted by Ustse
 Run:
 
 - `npm.cmd test`
+- `npm.cmd run test:browser`
 
 Current automated coverage includes:
 
@@ -14,6 +15,7 @@ Current automated coverage includes:
 - reorder logic
 - split parsing
 - export order and relative rotation handling
+- browser smoke coverage for the `file://` flow using local sample files
 
 ## Manual Checks
 
@@ -31,5 +33,5 @@ Recommended manual checks in browser:
 
 ## Known Gaps
 
-- No browser automation suite currently verifies the full UI flow end to end.
+- Browser smoke coverage exists for the `file://` flow, but it is still a lightweight smoke test rather than a full UI automation suite.
 - Performance and download behavior for many simultaneous JPEG exports depend partly on browser policy.
