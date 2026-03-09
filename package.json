@@ -1,7 +1,17 @@
-{
-  "name": "private-offline-pdf-toolkit",
-  "private": true,
+﻿{
+  "name": "local-pdf-toolkit",
+  "version": "0.2.0",
+  "description": "Offline-first browser PDF toolkit for local page operations and export overlays.",
   "type": "module",
+  "license": "MIT",
+  "author": "Ustselemov",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ustselemov/local-pdf-toolkit.git"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "test": "node ./tests/run-tests.mjs",
     "samples": "node ./tools/generate-samples.mjs"

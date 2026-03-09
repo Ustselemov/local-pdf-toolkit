@@ -1,0 +1,84 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Local PDF Toolkit Documentation Wiki</title>
+  <style>
+    body { margin: 0; font-family: Segoe UI, Arial, sans-serif; color: #1d2529; background: #f4f1ea; }
+    .layout { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
+    nav { padding: 20px; background: #fffdf9; border-right: 1px solid rgba(29,37,41,.12); }
+    nav h1 { font-size: 20px; margin: 0 0 16px; }
+    nav a { display: block; margin-bottom: 10px; color: #0f766e; text-decoration: none; }
+    main { padding: 24px; }
+    article { background: #fffdf9; border: 1px solid rgba(29,37,41,.12); border-radius: 16px; padding: 20px; white-space: normal; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; background: rgba(29,37,41,.04); padding: 12px; border-radius: 12px; }
+    code { font-family: Consolas, monospace; }
+    @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } nav { border-right: 0; border-bottom: 1px solid rgba(29,37,41,.12); } }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <nav>
+      <h1>Documentation</h1>
+      <a href="#" data-doc="../PRODUCT_OVERVIEW.md">Product Overview</a>
+      <a href="#" data-doc="../TECHNICAL_SPECIFICATION.md">Technical Specification</a>
+      <a href="#" data-doc="../FUNCTIONAL_REQUIREMENTS.md">Functional Requirements</a>
+      <a href="#" data-doc="../NON_FUNCTIONAL_REQUIREMENTS.md">Non-Functional Requirements</a>
+      <a href="#" data-doc="../SYSTEM_ARCHITECTURE.md">System Architecture</a>
+      <a href="#" data-doc="../ARCHITECTURAL_DECISIONS.md">Architectural Decisions</a>
+      <a href="#" data-doc="../DATA_MODEL.md">Data Model</a>
+      <a href="#" data-doc="../api/API_REFERENCE.md">API Reference</a>
+      <a href="#" data-doc="../DEVELOPMENT_GUIDE.md">Development Guide</a>
+      <a href="#" data-doc="../TESTING.md">Testing</a>
+      <a href="#" data-doc="../ROADMAP.md">Roadmap</a>
+      <a href="#" data-doc="../security/SECURITY.md">Security</a>
+      <a href="#" data-doc="../diagrams/architecture.md">Architecture Diagram</a>
+    </nav>
+    <main>
+      <article id="content">Loading documentation...</article>
+    </main>
+  </div>
+  <script>
+    const content = document.getElementById('content');
+    const links = [...document.querySelectorAll('[data-doc]')];
+
+    function escapeHtml(value) {
+      return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+    }
+
+    function renderMarkdown(md) {
+      const blocks = md.split(/\n\n+/).map((block) => block.trim()).filter(Boolean);
+      return blocks.map((block) => {
+        if (block.startsWith('```')) {
+          const code = block.replace(/^```[\w-]*\n?/, '').replace(/```$/, '');
+          return `<pre><code>${escapeHtml(code)}</code></pre>`;
+        }
+        if (block.startsWith('# ')) return `<h1>${escapeHtml(block.slice(2))}</h1>`;
+        if (block.startsWith('## ')) return `<h2>${escapeHtml(block.slice(3))}</h2>`;
+        if (block.startsWith('### ')) return `<h3>${escapeHtml(block.slice(4))}</h3>`;
+        if (block.split('\n').every((line) => line.startsWith('- '))) {
+          const items = block.split('\n').map((line) => `<li>${escapeHtml(line.slice(2))}</li>`).join('');
+          return `<ul>${items}</ul>`;
+        }
+        return `<p>${escapeHtml(block)}</p>`;
+      }).join('');
+    }
+
+    async function loadDoc(path) {
+      const response = await fetch(path);
+      const text = await response.text();
+      content.innerHTML = renderMarkdown(text);
+    }
+
+    links.forEach((link) => {
+      link.addEventListener('click', async (event) => {
+        event.preventDefault();
+        await loadDoc(link.dataset.doc);
+      });
+    });
+
+    loadDoc('../PRODUCT_OVERVIEW.md');
+  </script>
+</body>
+</html>

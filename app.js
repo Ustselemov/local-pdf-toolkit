@@ -1,4 +1,9 @@
-﻿(function () {
+﻿/*
+ * Local PDF Toolkit
+ * Generated with the assistance of Codex AI
+ * Prompted by Ustselemov
+ */
+(function () {
   const { PDFDocument, StandardFonts, degrees, rgb } = globalThis.PDFLib;
   const pdfjsLib = globalThis['pdfjs-dist/build/pdf'];
 
@@ -1162,6 +1167,7 @@
       .replace(/'/g, '&#39;');
   }
 })();
+
 
 
 

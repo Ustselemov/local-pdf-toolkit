@@ -1,4 +1,9 @@
-﻿:root {
+﻿/*
+ * Local PDF Toolkit
+ * Generated with the assistance of Codex AI
+ * Prompted by Ustselemov
+ */
+:root {
   --bg: #f2efe8;
   --paper: #fffdf9;
   --ink: #1d2529;
@@ -368,6 +373,7 @@ button, input { font: inherit; }
   .page-card__preview { min-height: 500px; }
   .page-card__canvas { max-height: 500px; }
 }
+
 
 
 
