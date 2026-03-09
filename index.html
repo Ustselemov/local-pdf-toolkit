@@ -1,0 +1,109 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Private Offline PDF Toolkit</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="app">
+    <section class="landing" id="landing">
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Add files">
+        <input id="file-input" type="file" accept="application/pdf,.pdf,image/png,image/jpeg,.png,.jpg,.jpeg" multiple hidden>
+        <div class="dropzone__title">Drop PDF, JPG, PNG files here</div>
+        <div class="dropzone__subtitle">or click to choose from computer</div>
+      </div>
+      <div class="landing__actions" id="landing-actions">
+        <button class="button button--ghost landing__editor-button" id="go-to-editor-button" type="button" disabled>Go to editing</button>
+      </div>
+      <section class="status status--landing" id="status" aria-live="polite"></section>
+    </section>
+
+    <section class="workspace" id="workspace" hidden>
+      <header class="workspace__bar">
+        <div class="workspace__summary" id="summary"></div>
+        <div class="workspace__actions">
+          <button class="button" id="export-all-button" type="button">Export</button>
+          <button class="button button--ghost" id="export-selected-button" type="button">Extract selected</button>
+          <button class="button button--ghost" id="rotate-left-button" type="button">Rotate left</button>
+          <button class="button button--ghost" id="rotate-right-button" type="button">Rotate right</button>
+          <button class="button button--danger" id="delete-selected-button" type="button">Delete selected</button>
+          <button class="button button--ghost" id="split-toggle-button" type="button">Split</button>
+          <button class="button button--ghost" id="overlay-toggle-button" type="button">Overlays</button>
+          <button class="button button--ghost" id="reset-workspace-button" type="button">Reset</button>
+        </div>
+      </header>
+
+      <section class="split-panel" id="split-panel" hidden>
+        <input class="split-panel__input" id="split-input" type="text" placeholder="1-3|4-6|7" spellcheck="false">
+        <button class="button button--ghost" id="split-button" type="button">Export split</button>
+      </section>
+
+      <section class="overlay-panel" id="overlay-panel" hidden>
+        <label class="field">
+          <span class="field__label">Watermark text</span>
+          <input class="field__input" id="watermark-text-input" type="text" placeholder="DRAFT">
+        </label>
+        <label class="field">
+          <span class="field__label">Watermark position</span>
+          <select class="field__input" id="watermark-preset-select">
+            <option value="center-diagonal">Center diagonal</option>
+            <option value="top-center">Top center</option>
+            <option value="bottom-center">Bottom center</option>
+          </select>
+        </label>
+        <label class="field field--checkbox">
+          <input id="page-numbers-enabled-input" type="checkbox">
+          <span class="field__label">Page numbers</span>
+        </label>
+        <label class="field">
+          <span class="field__label">Page number format</span>
+          <select class="field__input" id="page-number-format-select">
+            <option value="number">1</option>
+            <option value="page-of-total">Page 1 of 10</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="field__label">Page number position</span>
+          <select class="field__input" id="page-number-preset-select">
+            <option value="bottom-right">Bottom right</option>
+            <option value="bottom-center">Bottom center</option>
+            <option value="top-right">Top right</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="pages-grid" id="pages-grid"></section>
+    </section>
+  </main>
+
+  <div class="modal" id="export-modal" hidden>
+    <div class="modal__backdrop" id="export-modal-backdrop"></div>
+    <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
+      <h2 class="modal__title" id="export-modal-title">Choose export format</h2>
+      <label class="field modal__field">
+        <span class="field__label">JPEG quality preset</span>
+        <select class="field__input" id="export-jpeg-quality-select">
+          <option value="high">High</option>
+          <option value="max">Maximum</option>
+          <option value="medium">Medium</option>
+        </select>
+      </label>
+      <p class="modal__hint" id="export-jpeg-details">Calculating JPEG output size...</p>
+      <div class="modal__actions">
+        <button class="button" id="export-modal-pdf" type="button">Export as PDF</button>
+        <button class="button button--ghost" id="export-modal-jpeg" type="button">Export as JPEG</button>
+        <button class="button button--ghost" id="export-modal-cancel" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./vendor/pdf-lib.min.js"></script>
+  <script src="./vendor/pdf.min.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
+
+
+

@@ -1,0 +1,13 @@
+{
+  "name": "private-offline-pdf-toolkit",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node ./tests/run-tests.mjs",
+    "samples": "node ./tools/generate-samples.mjs"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^2.16.105"
+  }
+}

@@ -1,0 +1,1183 @@
+﻿(function () {
+  const { PDFDocument, StandardFonts, degrees, rgb } = globalThis.PDFLib;
+  const pdfjsLib = globalThis['pdfjs-dist/build/pdf'];
+
+  const state = {
+    sourceDocuments: [],
+    pages: [],
+    selectedPageIds: new Set(),
+    draggingPageId: null,
+    pendingExport: null,
+    overlays: {
+      watermarkText: '',
+      watermarkPreset: 'center-diagonal',
+      pageNumbersEnabled: false,
+      pageNumberFormat: 'number',
+      pageNumberPreset: 'bottom-right',
+    },
+  };
+
+  let sourceSequence = 0;
+  let pageSequence = 0;
+  let previewObserver = null;
+  const previewCache = new Map();
+
+  const elements = {
+    landing: document.getElementById('landing'),
+    dropzone: document.getElementById('dropzone'),
+    fileInput: document.getElementById('file-input'),
+    workspace: document.getElementById('workspace'),
+    landingActions: document.getElementById('landing-actions'),
+    goToEditorButton: document.getElementById('go-to-editor-button'),
+    summary: document.getElementById('summary'),
+    status: document.getElementById('status'),
+    pagesGrid: document.getElementById('pages-grid'),
+    exportAllButton: document.getElementById('export-all-button'),
+    exportSelectedButton: document.getElementById('export-selected-button'),
+    rotateLeftButton: document.getElementById('rotate-left-button'),
+    rotateRightButton: document.getElementById('rotate-right-button'),
+    deleteSelectedButton: document.getElementById('delete-selected-button'),
+    splitToggleButton: document.getElementById('split-toggle-button'),
+    splitPanel: document.getElementById('split-panel'),
+    splitInput: document.getElementById('split-input'),
+    splitButton: document.getElementById('split-button'),
+    overlayToggleButton: document.getElementById('overlay-toggle-button'),
+    overlayPanel: document.getElementById('overlay-panel'),
+    watermarkTextInput: document.getElementById('watermark-text-input'),
+    watermarkPresetSelect: document.getElementById('watermark-preset-select'),
+    pageNumbersEnabledInput: document.getElementById('page-numbers-enabled-input'),
+    pageNumberFormatSelect: document.getElementById('page-number-format-select'),
+    pageNumberPresetSelect: document.getElementById('page-number-preset-select'),
+    resetWorkspaceButton: document.getElementById('reset-workspace-button'),
+    exportModal: document.getElementById('export-modal'),
+    exportModalBackdrop: document.getElementById('export-modal-backdrop'),
+    exportJpegQualitySelect: document.getElementById('export-jpeg-quality-select'),
+    exportJpegDetails: document.getElementById('export-jpeg-details'),
+    exportModalPdf: document.getElementById('export-modal-pdf'),
+    exportModalJpeg: document.getElementById('export-modal-jpeg'),
+    exportModalCancel: document.getElementById('export-modal-cancel'),
+  };
+
+  bindEvents();
+  syncOverlayControls();
+  render();
+  init();
+
+  function init() {
+    if (!pdfjsLib) {
+      setStatus('error', 'PDF preview engine failed to initialize.');
+      return;
+    }
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = './vendor/pdf.worker.min.js';
+    setStatus('idle', '');
+  }
+
+  function bindEvents() {
+    elements.dropzone.addEventListener('click', () => {
+      elements.fileInput.click();
+    });
+
+    elements.dropzone.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        elements.fileInput.click();
+      }
+    });
+
+    elements.fileInput.addEventListener('change', async (event) => {
+      await handleFiles(event.target.files);
+      event.target.value = '';
+    });
+
+    elements.dropzone.addEventListener('dragenter', (event) => {
+      event.preventDefault();
+      elements.dropzone.dataset.dragging = 'true';
+    });
+
+    elements.dropzone.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      elements.dropzone.dataset.dragging = 'true';
+    });
+
+    elements.dropzone.addEventListener('dragleave', () => {
+      elements.dropzone.dataset.dragging = 'false';
+    });
+
+    elements.dropzone.addEventListener('drop', async (event) => {
+      event.preventDefault();
+      elements.dropzone.dataset.dragging = 'false';
+      await handleFiles(event.dataTransfer.files);
+    });
+
+    elements.exportAllButton.addEventListener('click', () => {
+      if (!state.pages.length) {
+        setStatus('warning', 'There are no pages to export.');
+        return;
+      }
+      openExportModal(state.pages, buildFilename('export'), 'Export all pages');
+    });
+
+    elements.exportSelectedButton.addEventListener('click', () => {
+      const selectedPages = getSelectedPages();
+      if (!selectedPages.length) {
+        setStatus('warning', 'Select at least one page first.');
+        return;
+      }
+      openExportModal(selectedPages, buildFilename('selected'), 'Export selected pages');
+    });
+
+    elements.rotateLeftButton.addEventListener('click', () => rotateSelected(-90));
+    elements.rotateRightButton.addEventListener('click', () => rotateSelected(90));
+    elements.deleteSelectedButton.addEventListener('click', deleteSelected);
+    elements.goToEditorButton.addEventListener('click', scrollToWorkspace);
+    elements.splitToggleButton.addEventListener('click', toggleSplitPanel);
+    elements.splitButton.addEventListener('click', splitWorkspace);
+    elements.overlayToggleButton.addEventListener('click', toggleOverlayPanel);
+    elements.resetWorkspaceButton.addEventListener('click', resetWorkspace);
+
+    elements.watermarkTextInput.addEventListener('input', () => {
+      state.overlays.watermarkText = elements.watermarkTextInput.value;
+    });
+    elements.watermarkPresetSelect.addEventListener('change', () => {
+      state.overlays.watermarkPreset = elements.watermarkPresetSelect.value;
+    });
+    elements.pageNumbersEnabledInput.addEventListener('change', () => {
+      state.overlays.pageNumbersEnabled = elements.pageNumbersEnabledInput.checked;
+      syncOverlayControls();
+    });
+    elements.pageNumberFormatSelect.addEventListener('change', () => {
+      state.overlays.pageNumberFormat = elements.pageNumberFormatSelect.value;
+    });
+    elements.pageNumberPresetSelect.addEventListener('change', () => {
+      state.overlays.pageNumberPreset = elements.pageNumberPresetSelect.value;
+    });
+
+    elements.exportModalPdf.addEventListener('click', async () => {
+      await confirmExport('pdf');
+    });
+    elements.exportModalJpeg.addEventListener('click', async () => {
+      await confirmExport('jpeg');
+    });
+    elements.exportModalCancel.addEventListener('click', closeExportModal);
+    elements.exportModalBackdrop.addEventListener('click', closeExportModal);
+    elements.exportJpegQualitySelect.addEventListener('change', () => {
+      void refreshExportModalJpegDetails();
+    });
+  }
+
+  function syncOverlayControls() {
+    elements.watermarkTextInput.value = state.overlays.watermarkText;
+    elements.watermarkPresetSelect.value = state.overlays.watermarkPreset;
+    elements.pageNumbersEnabledInput.checked = state.overlays.pageNumbersEnabled;
+    elements.pageNumberFormatSelect.value = state.overlays.pageNumberFormat;
+    elements.pageNumberPresetSelect.value = state.overlays.pageNumberPreset;
+    elements.pageNumberFormatSelect.disabled = !state.overlays.pageNumbersEnabled;
+    elements.pageNumberPresetSelect.disabled = !state.overlays.pageNumbersEnabled;
+  }
+
+  async function handleFiles(fileList) {
+    if (!pdfjsLib) {
+      setStatus('error', 'PDF preview engine is not available in this build.');
+      return;
+    }
+
+    const files = Array.from(fileList || []).filter(isSupportedFile);
+    if (!files.length) {
+      setStatus('warning', 'No supported files found. Use PDF, JPG or PNG.');
+      return;
+    }
+
+    setStatus('idle', `Importing ${files.length} file${files.length === 1 ? '' : 's'}...`);
+    let importedCount = 0;
+    const failures = [];
+
+    for (const file of files) {
+      try {
+        if (isPdfFile(file)) {
+          await importPdf(file);
+        } else {
+          await importImage(file);
+        }
+        importedCount += 1;
+      } catch (error) {
+        console.error(error);
+        failures.push(`${file.name}: ${error.message}`);
+      }
+    }
+
+    render();
+
+    if (!importedCount) {
+      setStatus('error', `Import failed. ${failures.join(' | ')}`);
+      return;
+    }
+
+    if (failures.length) {
+      setStatus('warning', `Imported ${importedCount} of ${files.length}. Failed: ${failures.join(' | ')}`);
+      return;
+    }
+
+    setStatus('success', `Imported ${importedCount} file${importedCount === 1 ? '' : 's'}.`);
+    scrollToWorkspace();
+  }
+
+  async function importPdf(file) {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const pdfLibDoc = await PDFDocument.load(bytes);
+    const pdfjsDoc = await pdfjsLib.getDocument({
+      data: bytes,
+      disableWorker: false,
+      isEvalSupported: false,
+      useWorkerFetch: false,
+      useSystemFonts: true,
+    }).promise;
+
+    const sourceId = `source-${++sourceSequence}`;
+    state.sourceDocuments.push({
+      id: sourceId,
+      type: 'pdf',
+      name: file.name,
+      bytes,
+      pdfjsDoc,
+      pageCount: pdfLibDoc.getPageCount(),
+    });
+
+    for (let index = 0; index < pdfLibDoc.getPageCount(); index += 1) {
+      const page = pdfLibDoc.getPage(index);
+      const rotation = page.getRotation().angle || 0;
+      state.pages.push({
+        id: `page-${++pageSequence}`,
+        sourceDocId: sourceId,
+        sourceType: 'pdf',
+        sourceName: file.name,
+        sourcePageIndex: index,
+        baseRotation: rotation,
+        rotation: 0,
+      });
+    }
+  }
+
+  async function importImage(file) {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const blob = new Blob([bytes], { type: file.type || detectImageMime(file.name) });
+    const objectUrl = URL.createObjectURL(blob);
+    const imageSize = await loadImageSize(objectUrl);
+
+    const sourceId = `source-${++sourceSequence}`;
+    state.sourceDocuments.push({
+      id: sourceId,
+      type: 'image',
+      name: file.name,
+      bytes,
+      mimeType: blob.type || detectImageMime(file.name),
+      objectUrl,
+      pageCount: 1,
+      width: imageSize.width,
+      height: imageSize.height,
+    });
+
+    state.pages.push({
+      id: `page-${++pageSequence}`,
+      sourceDocId: sourceId,
+      sourceType: 'image',
+      sourceName: file.name,
+      sourcePageIndex: 0,
+      baseRotation: 0,
+      rotation: 0,
+    });
+  }
+
+  function render() {
+    const hasPages = state.pages.length > 0;
+    elements.landing.hidden = false;
+    elements.landingActions.hidden = false;
+    elements.goToEditorButton.disabled = !hasPages;
+    elements.goToEditorButton.dataset.active = hasPages ? 'true' : 'false';
+    elements.workspace.hidden = !hasPages;
+
+    if (!hasPages) {
+      elements.summary.textContent = '';
+      elements.pagesGrid.innerHTML = '';
+      updateButtons();
+      return;
+    }
+
+    const selectedCount = state.selectedPageIds.size;
+    elements.summary.textContent = `${state.sourceDocuments.length} file${state.sourceDocuments.length === 1 ? '' : 's'} · ${state.pages.length} page${state.pages.length === 1 ? '' : 's'}${selectedCount ? ` · ${selectedCount} selected` : ''}`;
+    updateButtons();
+    renderPages();
+  }
+
+  function updateButtons() {
+    const hasPages = state.pages.length > 0;
+    const hasSelection = state.selectedPageIds.size > 0;
+    elements.exportAllButton.disabled = !hasPages;
+    elements.exportSelectedButton.disabled = !hasSelection;
+    elements.rotateLeftButton.disabled = !hasSelection;
+    elements.rotateRightButton.disabled = !hasSelection;
+    elements.deleteSelectedButton.disabled = !hasSelection;
+    elements.splitToggleButton.disabled = !hasPages;
+    elements.splitButton.disabled = !hasPages;
+    elements.overlayToggleButton.disabled = !hasPages;
+    elements.resetWorkspaceButton.disabled = !hasPages;
+  }
+
+  function renderPages() {
+    disconnectPreviewObserver();
+    elements.pagesGrid.innerHTML = '';
+    previewObserver = new IntersectionObserver(onPreviewIntersection, { rootMargin: '220px' });
+
+    state.pages.forEach((page, index) => {
+      const card = document.createElement('article');
+      card.className = 'page-card';
+      card.draggable = true;
+      card.dataset.pageId = page.id;
+      card.dataset.selected = state.selectedPageIds.has(page.id) ? 'true' : 'false';
+
+      card.addEventListener('dragstart', () => {
+        state.draggingPageId = page.id;
+        card.dataset.dragging = 'true';
+      });
+
+      card.addEventListener('dragend', () => {
+        state.draggingPageId = null;
+        card.dataset.dragging = 'false';
+        clearDropTargets();
+      });
+
+      card.addEventListener('dragover', (event) => {
+        event.preventDefault();
+        card.dataset.dropTarget = event.clientX < getCardMidpoint(card) ? 'before' : 'after';
+      });
+
+      card.addEventListener('dragleave', () => {
+        card.dataset.dropTarget = '';
+      });
+
+      card.addEventListener('drop', (event) => {
+        event.preventDefault();
+        const dropPosition = card.dataset.dropTarget === 'after' ? 'after' : 'before';
+        card.dataset.dropTarget = '';
+        if (!state.draggingPageId || state.draggingPageId === page.id) {
+          return;
+        }
+        state.pages = movePageRelative(state.pages, state.draggingPageId, page.id, dropPosition);
+        render();
+        setStatus('success', 'Page order updated.');
+      });
+
+      const preview = document.createElement('div');
+      preview.className = 'page-card__preview';
+      const canvas = document.createElement('canvas');
+      canvas.className = 'page-card__canvas';
+      canvas.dataset.pageId = page.id;
+      preview.appendChild(canvas);
+
+      const meta = document.createElement('div');
+      meta.className = 'page-card__meta';
+      meta.innerHTML = `
+        <div class="page-card__row">
+          <div class="page-card__title">Page ${index + 1}</div>
+          <input class="page-card__checkbox" type="checkbox" ${state.selectedPageIds.has(page.id) ? 'checked' : ''}>
+        </div>
+        <div class="page-card__actions">
+          <button class="icon-button" type="button" data-action="move-left" title="Move left">←</button>
+          <button class="icon-button" type="button" data-action="move-right" title="Move right">→</button>
+          <button class="icon-button" type="button" data-action="rotate-left" title="Rotate left">↺</button>
+          <button class="icon-button" type="button" data-action="rotate-right" title="Rotate right">↻</button>
+          <button class="icon-button icon-button--accent" type="button" data-action="extract" title="Extract page">⇩</button>
+          <button class="icon-button icon-button--danger" type="button" data-action="delete" title="Delete page">✕</button>
+        </div>
+        <div class="page-card__sub">${escapeHtml(page.sourceName)}${page.sourceType === 'pdf' ? ` · source page ${page.sourcePageIndex + 1}` : ' · image source'}</div>
+        <div class="page-card__sub">Rotation ${normalizeRotation(page.baseRotation + page.rotation)}°</div>
+      `;
+
+      card.addEventListener('click', (event) => {
+        if (event.target.closest('button') || event.target.closest('input')) {
+          return;
+        }
+        toggleSelection(page.id);
+      });
+
+      meta.querySelector('.page-card__checkbox').addEventListener('change', () => {
+        toggleSelection(page.id);
+      });
+
+      meta.querySelector('[data-action="move-left"]').addEventListener('click', () => moveSinglePage(page.id, -1));
+      meta.querySelector('[data-action="move-right"]').addEventListener('click', () => moveSinglePage(page.id, 1));
+      meta.querySelector('[data-action="rotate-left"]').addEventListener('click', () => rotateOnePage(page.id, -90));
+      meta.querySelector('[data-action="rotate-right"]').addEventListener('click', () => rotateOnePage(page.id, 90));
+      meta.querySelector('[data-action="extract"]').addEventListener('click', () => openExportModal([page], buildFilename(`page-${index + 1}`), `Export page ${index + 1}`));
+      meta.querySelector('[data-action="delete"]').addEventListener('click', () => deleteOnePage(page.id));
+
+      card.append(preview, meta);
+      elements.pagesGrid.appendChild(card);
+      previewObserver.observe(canvas);
+    });
+  }
+
+  function openExportModal(pages, filenameBase, label) {
+    state.pendingExport = { pages, filenameBase, label };
+    elements.exportModal.hidden = false;
+    void refreshExportModalJpegDetails();
+  }
+
+  function closeExportModal() {
+    state.pendingExport = null;
+    elements.exportModal.hidden = true;
+  }
+
+  async function confirmExport(format) {
+    if (!state.pendingExport) {
+      closeExportModal();
+      return;
+    }
+
+    const { pages, filenameBase } = state.pendingExport;
+    closeExportModal();
+
+    if (format === 'pdf') {
+      await exportPagesAsPdf(pages, filenameBase);
+      return;
+    }
+
+    await exportPagesAsJpeg(pages, filenameBase, false, getSelectedJpegOptions());
+  }
+
+  async function exportPagesAsPdf(pages, filenameBase, silent) {
+    if (!pages.length) {
+      setStatus('warning', 'There are no pages to export.');
+      return;
+    }
+
+    try {
+      const bytes = await buildPdfBytes(pages);
+      downloadBlob(new Blob([bytes], { type: 'application/pdf' }), `${filenameBase}.pdf`);
+      if (!silent) {
+        setStatus('success', `Saved ${filenameBase}.pdf`);
+      }
+    } catch (error) {
+      console.error(error);
+      setStatus('error', `Export failed: ${error.message}`);
+    }
+  }
+
+  async function exportPagesAsJpeg(pages, filenameBase, silent, jpegOptions) {
+    if (!pages.length) {
+      setStatus('warning', 'There are no pages to export.');
+      return;
+    }
+
+    try {
+      for (let index = 0; index < pages.length; index += 1) {
+        const page = pages[index];
+        const options = jpegOptions || getSelectedJpegOptions();
+        const canvas = await renderPageForJpegExport(page, options);
+        applyOverlaysToCanvas(canvas, index, pages.length);
+        const blob = await canvasToBlob(canvas, 'image/jpeg', options.quality);
+        const suffix = pages.length === 1 ? '' : `-${index + 1}`;
+        downloadBlob(blob, `${filenameBase}${suffix}.jpg`);
+      }
+      if (!silent) {
+        setStatus('success', pages.length === 1 ? `Saved ${filenameBase}.jpg` : `Saved ${pages.length} JPEG files.`);
+      }
+    } catch (error) {
+      console.error(error);
+      setStatus('error', `JPEG export failed: ${error.message}`);
+    }
+  }
+
+  async function refreshExportModalJpegDetails() {
+    if (!state.pendingExport || !state.pendingExport.pages.length) {
+      elements.exportJpegDetails.textContent = '';
+      return;
+    }
+
+    const firstPage = state.pendingExport.pages[0];
+    const options = getSelectedJpegOptions();
+    const size = await getExportPixelSize(firstPage, options);
+    elements.exportJpegDetails.textContent = `${options.label}: about ${size.width} x ${size.height} px for the first page, JPEG quality ${options.qualityPercent}. Exact file size depends on page content.`;
+  }
+
+  function getSelectedJpegOptions() {
+    const preset = elements.exportJpegQualitySelect.value || 'high';
+    if (preset === 'max') {
+      return { preset, label: 'Maximum', quality: 1, qualityPercent: '100%', pdfScale: 6.5, imageScale: 2 };
+    }
+    if (preset === 'medium') {
+      return { preset, label: 'Medium', quality: 0.92, qualityPercent: '92%', pdfScale: 3, imageScale: 1 };
+    }
+    return { preset: 'high', label: 'High', quality: 0.98, qualityPercent: '98%', pdfScale: 4.5, imageScale: 1.5 };
+  }
+
+  async function renderPageForJpegExport(page, jpegOptions) {
+    const options = jpegOptions || getSelectedJpegOptions();
+    const scale = page.sourceType === 'pdf' ? options.pdfScale : options.imageScale;
+    return renderPageToCanvas(page, scale);
+  }
+
+  async function getExportPixelSize(page, jpegOptions) {
+    const options = jpegOptions || getSelectedJpegOptions();
+    const source = state.sourceDocuments.find((item) => item.id === page.sourceDocId);
+    if (!source) {
+      return { width: 0, height: 0 };
+    }
+
+    if (source.type === 'pdf') {
+      const pageProxy = await source.pdfjsDoc.getPage(page.sourcePageIndex + 1);
+      const viewport = pageProxy.getViewport({
+        scale: options.pdfScale,
+        rotation: normalizeRotation(page.baseRotation + page.rotation),
+      });
+      pageProxy.cleanup();
+      return { width: Math.ceil(viewport.width), height: Math.ceil(viewport.height) };
+    }
+
+    const rotated = Math.abs(normalizeRotation(page.rotation) % 180) === 90;
+    const baseWidth = rotated ? source.height : source.width;
+    const baseHeight = rotated ? source.width : source.height;
+    return {
+      width: Math.round(baseWidth * options.imageScale),
+      height: Math.round(baseHeight * options.imageScale),
+    };
+  }
+
+  async function handleFilesSplitExport(groups) {
+    for (let index = 0; index < groups.length; index += 1) {
+      const groupPages = groups[index].map((pageIndex) => state.pages[pageIndex]);
+      await exportPagesAsPdf(groupPages, buildFilename(`part-${index + 1}`), true);
+    }
+    setStatus('success', `Exported ${groups.length} split PDF file${groups.length === 1 ? '' : 's'}.`);
+  }
+
+  async function importImageBitmapFromSource(source) {
+    return loadImageElement(source.objectUrl);
+  }
+
+  function getCardMidpoint(card) {
+    const rect = card.getBoundingClientRect();
+    return rect.left + rect.width / 2;
+  }
+
+  function movePageRelative(pages, movingPageId, targetPageId, position) {
+    if (movingPageId === targetPageId) {
+      return pages.slice();
+    }
+
+    const nextPages = pages.slice();
+    const movingIndex = nextPages.findIndex((page) => page.id === movingPageId);
+    const targetIndex = nextPages.findIndex((page) => page.id === targetPageId);
+    if (movingIndex === -1 || targetIndex === -1) {
+      return nextPages;
+    }
+
+    const [movingPage] = nextPages.splice(movingIndex, 1);
+    const baseTargetIndex = movingIndex < targetIndex ? targetIndex - 1 : targetIndex;
+    const insertIndex = position === 'after' ? baseTargetIndex + 1 : baseTargetIndex;
+    nextPages.splice(insertIndex, 0, movingPage);
+    return nextPages;
+  }
+
+  function clearDropTargets() {
+    document.querySelectorAll('[data-drop-target]').forEach((element) => {
+      element.dataset.dropTarget = '';
+    });
+  }
+
+  function toggleSelection(pageId) {
+    if (state.selectedPageIds.has(pageId)) {
+      state.selectedPageIds.delete(pageId);
+    } else {
+      state.selectedPageIds.add(pageId);
+    }
+    render();
+  }
+
+  function getSelectedPages() {
+    return state.pages.filter((page) => state.selectedPageIds.has(page.id));
+  }
+
+  function rotateSelected(delta) {
+    if (!state.selectedPageIds.size) {
+      setStatus('warning', 'Select at least one page first.');
+      return;
+    }
+
+    state.pages = state.pages.map((page) => state.selectedPageIds.has(page.id)
+      ? { ...page, rotation: normalizeRotation(page.rotation + delta) }
+      : page);
+
+    previewCache.clear();
+    render();
+    setStatus('success', 'Rotation updated.');
+  }
+
+  function rotateOnePage(pageId, delta) {
+    state.pages = state.pages.map((page) => page.id === pageId
+      ? { ...page, rotation: normalizeRotation(page.rotation + delta) }
+      : page);
+
+    previewCache.clear();
+    render();
+    setStatus('success', 'Page rotated.');
+  }
+
+  function moveSinglePage(pageId, direction) {
+    const index = state.pages.findIndex((page) => page.id === pageId);
+    const targetIndex = index + direction;
+    if (index === -1 || targetIndex < 0 || targetIndex >= state.pages.length) {
+      return;
+    }
+
+    const nextPages = state.pages.slice();
+    const [page] = nextPages.splice(index, 1);
+    nextPages.splice(targetIndex, 0, page);
+    state.pages = nextPages;
+    render();
+    setStatus('success', direction < 0 ? 'Page moved left.' : 'Page moved right.');
+  }
+
+  function deleteOnePage(pageId) {
+    state.pages = state.pages.filter((page) => page.id !== pageId);
+    state.selectedPageIds.delete(pageId);
+    render();
+    setStatus('success', 'Page deleted.');
+  }
+
+  function deleteSelected() {
+    if (!state.selectedPageIds.size) {
+      setStatus('warning', 'Select at least one page first.');
+      return;
+    }
+
+    const removedCount = state.selectedPageIds.size;
+    state.pages = state.pages.filter((page) => !state.selectedPageIds.has(page.id));
+    state.selectedPageIds.clear();
+    render();
+    setStatus('success', `Deleted ${removedCount} page${removedCount === 1 ? '' : 's'}.`);
+  }
+
+  function toggleSplitPanel() {
+    elements.splitPanel.hidden = !elements.splitPanel.hidden;
+    if (!elements.splitPanel.hidden) {
+      elements.splitInput.focus();
+    }
+  }
+
+  function toggleOverlayPanel() {
+    elements.overlayPanel.hidden = !elements.overlayPanel.hidden;
+    if (!elements.overlayPanel.hidden) {
+      elements.watermarkTextInput.focus();
+    }
+  }
+
+  async function splitWorkspace() {
+    if (!state.pages.length) {
+      setStatus('warning', 'Import PDF or image files first.');
+      return;
+    }
+
+    let groups;
+    try {
+      groups = parseSplitSpec(elements.splitInput.value, state.pages.length);
+    } catch (error) {
+      setStatus('error', error.message);
+      return;
+    }
+
+    await handleFilesSplitExport(groups);
+  }
+
+  async function buildPdfBytes(pages) {
+    const outputPdf = await PDFDocument.create();
+    const loadedPdfSources = new Map();
+    const sourceMap = new Map(state.sourceDocuments.map((source) => [source.id, source]));
+    const helvetica = await outputPdf.embedFont(StandardFonts.Helvetica);
+    const helveticaBold = await outputPdf.embedFont(StandardFonts.HelveticaBold);
+
+    for (let index = 0; index < pages.length; index += 1) {
+      const pageRef = pages[index];
+      const source = sourceMap.get(pageRef.sourceDocId);
+      if (!source) {
+        throw new Error('Missing source document.');
+      }
+
+      if (source.type === 'pdf') {
+        let sourcePdf = loadedPdfSources.get(source.id);
+        if (!sourcePdf) {
+          sourcePdf = await PDFDocument.load(source.bytes);
+          loadedPdfSources.set(source.id, sourcePdf);
+        }
+
+        const [copiedPage] = await outputPdf.copyPages(sourcePdf, [pageRef.sourcePageIndex]);
+        copiedPage.setRotation(degrees(normalizeRotation((pageRef.baseRotation || 0) + (pageRef.rotation || 0))));
+        outputPdf.addPage(copiedPage);
+        applyOverlaysToPdfPage(copiedPage, helvetica, helveticaBold, index, pages.length);
+        continue;
+      }
+
+      const imageBytes = source.bytes;
+      const embeddedImage = source.mimeType === 'image/png'
+        ? await outputPdf.embedPng(imageBytes)
+        : await outputPdf.embedJpg(imageBytes);
+      const imageDims = embeddedImage.scale(1);
+      const page = outputPdf.addPage([imageDims.width, imageDims.height]);
+      page.drawImage(embeddedImage, {
+        x: 0,
+        y: 0,
+        width: imageDims.width,
+        height: imageDims.height,
+        rotate: degrees(normalizeRotation(pageRef.rotation || 0)),
+      });
+      applyOverlaysToPdfPage(page, helvetica, helveticaBold, index, pages.length);
+    }
+
+    return outputPdf.save();
+  }
+
+  function applyOverlaysToPdfPage(page, font, boldFont, exportIndex, totalPages) {
+    const settings = getOverlaySettings();
+    const { width, height } = page.getSize();
+
+    if (settings.watermarkText) {
+      drawPdfWatermark(page, boldFont, settings.watermarkText, settings.watermarkPreset, width, height);
+    }
+
+    if (settings.pageNumbersEnabled) {
+      const label = formatPageNumber(exportIndex + 1, totalPages, settings.pageNumberFormat);
+      drawPdfPageNumber(page, font, label, settings.pageNumberPreset, width, height);
+    }
+  }
+
+  function drawPdfWatermark(page, font, text, preset, width, height) {
+    const size = clamp(Math.min(width, height) * 0.12, 28, 88);
+    const textWidth = font.widthOfTextAtSize(text, size);
+    const base = {
+      size,
+      font,
+      color: rgb(0.32, 0.37, 0.4),
+      opacity: 0.16,
+      rotate: degrees(0),
+      x: (width - textWidth) / 2,
+      y: (height - size) / 2,
+    };
+
+    if (preset === 'center-diagonal') {
+      base.rotate = degrees(-32);
+    }
+
+    if (preset === 'top-center') {
+      base.y = height - size - clamp(height * 0.06, 18, 42);
+    }
+
+    if (preset === 'bottom-center') {
+      base.y = clamp(height * 0.06, 18, 42);
+    }
+
+    page.drawText(text, base);
+  }
+
+  function drawPdfPageNumber(page, font, label, preset, width, height) {
+    const size = clamp(Math.min(width, height) * 0.03, 12, 24);
+    const textWidth = font.widthOfTextAtSize(label, size);
+    const marginX = clamp(width * 0.05, 16, 40);
+    const marginY = clamp(height * 0.04, 14, 30);
+    let x = width - marginX - textWidth;
+    let y = marginY;
+
+    if (preset === 'bottom-center') {
+      x = (width - textWidth) / 2;
+    }
+
+    if (preset === 'top-right') {
+      y = height - marginY - size;
+    }
+
+    page.drawText(label, {
+      x,
+      y,
+      size,
+      font,
+      color: rgb(0.2, 0.23, 0.26),
+      opacity: 0.86,
+    });
+  }
+
+  function getOverlaySettings() {
+    return {
+      watermarkText: (state.overlays.watermarkText || '').trim(),
+      watermarkPreset: state.overlays.watermarkPreset,
+      pageNumbersEnabled: state.overlays.pageNumbersEnabled,
+      pageNumberFormat: state.overlays.pageNumberFormat,
+      pageNumberPreset: state.overlays.pageNumberPreset,
+    };
+  }
+
+  function formatPageNumber(index, total, format) {
+    if (format === 'page-of-total') {
+      return `Page ${index} of ${total}`;
+    }
+    return String(index);
+  }
+
+  function parseSplitSpec(value, totalPages) {
+    const input = (value || '').trim();
+    if (!input) {
+      throw new Error('Enter split ranges like 1-3|4-6|7.');
+    }
+
+    const groups = input.split('|').map((part) => part.trim()).filter(Boolean);
+    if (!groups.length) {
+      throw new Error('No split ranges found.');
+    }
+
+    return groups.map((group) => parseGroup(group, totalPages));
+  }
+
+  function parseGroup(group, totalPages) {
+    const result = [];
+    const seen = new Set();
+    const parts = group.split(',').map((part) => part.trim()).filter(Boolean);
+    if (!parts.length) {
+      throw new Error('Each split group must contain at least one page.');
+    }
+
+    for (const part of parts) {
+      const rangeMatch = part.match(/^(\d+)\s*-\s*(\d+)$/);
+      const singleMatch = part.match(/^(\d+)$/);
+
+      if (singleMatch) {
+        pushPage(result, seen, Number(singleMatch[1]), totalPages);
+        continue;
+      }
+
+      if (!rangeMatch) {
+        throw new Error(`Invalid split token: ${part}`);
+      }
+
+      const start = Number(rangeMatch[1]);
+      const end = Number(rangeMatch[2]);
+      if (start > end) {
+        throw new Error(`Invalid range: ${part}`);
+      }
+
+      for (let pageNumber = start; pageNumber <= end; pageNumber += 1) {
+        pushPage(result, seen, pageNumber, totalPages);
+      }
+    }
+
+    return result;
+  }
+
+  function pushPage(result, seen, pageNumber, totalPages) {
+    if (!Number.isInteger(pageNumber) || pageNumber < 1 || pageNumber > totalPages) {
+      throw new Error(`Page ${pageNumber} is out of range. Valid pages: 1-${totalPages}.`);
+    }
+
+    const pageIndex = pageNumber - 1;
+    if (seen.has(pageIndex)) {
+      return;
+    }
+    seen.add(pageIndex);
+    result.push(pageIndex);
+  }
+
+  function buildFilename(suffix) {
+    const base = state.sourceDocuments.length === 1 ? trimExtension(state.sourceDocuments[0].name) : 'workspace';
+    return sanitize(`${base}-${suffix}`);
+  }
+
+  function trimExtension(name) {
+    return name.replace(/\.[^.]+$/i, '');
+  }
+
+  function sanitize(name) {
+    return name.replace(/[^a-z0-9-_]+/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').toLowerCase() || 'file';
+  }
+
+  function normalizeRotation(angle) {
+    const normalized = angle % 360;
+    return normalized < 0 ? normalized + 360 : normalized;
+  }
+
+  async function onPreviewIntersection(entries) {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) {
+        continue;
+      }
+
+      const canvas = entry.target;
+      previewObserver.unobserve(canvas);
+      const page = state.pages.find((item) => item.id === canvas.dataset.pageId);
+      if (!page) {
+        continue;
+      }
+
+      const rendered = await renderPageToCanvas(page, 1);
+      canvas.width = rendered.width;
+      canvas.height = rendered.height;
+      const context = canvas.getContext('2d');
+      context.drawImage(rendered, 0, 0);
+    }
+  }
+
+  async function renderPageToCanvas(page, scaleMultiplier) {
+    const cacheKey = scaleMultiplier === 1 ? `${page.id}:${normalizeRotation(page.baseRotation + page.rotation)}` : null;
+    if (cacheKey && previewCache.has(cacheKey)) {
+      const cached = previewCache.get(cacheKey);
+      const image = await loadImageElement(cached.dataUrl);
+      const canvas = document.createElement('canvas');
+      canvas.width = cached.width;
+      canvas.height = cached.height;
+      canvas.getContext('2d').drawImage(image, 0, 0);
+      return canvas;
+    }
+
+    const source = state.sourceDocuments.find((item) => item.id === page.sourceDocId);
+    if (!source) {
+      throw new Error('Missing preview source.');
+    }
+
+    if (source.type === 'pdf') {
+      const pageProxy = await source.pdfjsDoc.getPage(page.sourcePageIndex + 1);
+      const viewport = pageProxy.getViewport({
+        scale: 0.62 * scaleMultiplier,
+        rotation: normalizeRotation(page.baseRotation + page.rotation),
+      });
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.ceil(viewport.width);
+      canvas.height = Math.ceil(viewport.height);
+      const context = canvas.getContext('2d');
+      await pageProxy.render({ canvasContext: context, viewport }).promise;
+      if (cacheKey) {
+        previewCache.set(cacheKey, {
+          width: canvas.width,
+          height: canvas.height,
+          dataUrl: canvas.toDataURL('image/webp', 0.92),
+        });
+      }
+      pageProxy.cleanup();
+      return canvas;
+    }
+
+    const image = await importImageBitmapFromSource(source);
+    const radians = normalizeRotation(page.rotation) * Math.PI / 180;
+    const sourceWidth = source.width;
+    const sourceHeight = source.height;
+    const rotated = Math.abs(normalizeRotation(page.rotation) % 180) === 90;
+    const width = rotated ? sourceHeight : sourceWidth;
+    const height = rotated ? sourceWidth : sourceHeight;
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(width * scaleMultiplier);
+    canvas.height = Math.round(height * scaleMultiplier);
+    const context = canvas.getContext('2d');
+    context.save();
+    context.translate(canvas.width / 2, canvas.height / 2);
+    context.rotate(radians);
+    context.drawImage(
+      image,
+      -sourceWidth * scaleMultiplier / 2,
+      -sourceHeight * scaleMultiplier / 2,
+      sourceWidth * scaleMultiplier,
+      sourceHeight * scaleMultiplier
+    );
+    context.restore();
+    if (cacheKey) {
+      previewCache.set(cacheKey, {
+        width: canvas.width,
+        height: canvas.height,
+        dataUrl: canvas.toDataURL('image/webp', 0.92),
+      });
+    }
+    return canvas;
+  }
+
+  function applyOverlaysToCanvas(canvas, exportIndex, totalPages) {
+    const settings = getOverlaySettings();
+    const context = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+
+    if (settings.watermarkText) {
+      const size = clamp(Math.min(width, height) * 0.12, 34, 140);
+      context.save();
+      context.fillStyle = 'rgba(44, 52, 58, 0.15)';
+      context.font = `700 ${size}px Arial`;
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+
+      if (settings.watermarkPreset === 'center-diagonal') {
+        context.translate(width / 2, height / 2);
+        context.rotate(-Math.PI / 5.8);
+        context.fillText(settings.watermarkText, 0, 0);
+      }
+
+      if (settings.watermarkPreset === 'top-center') {
+        context.fillText(settings.watermarkText, width / 2, clamp(height * 0.1, 42, 90));
+      }
+
+      if (settings.watermarkPreset === 'bottom-center') {
+        context.fillText(settings.watermarkText, width / 2, height - clamp(height * 0.1, 42, 90));
+      }
+      context.restore();
+    }
+
+    if (settings.pageNumbersEnabled) {
+      const label = formatPageNumber(exportIndex + 1, totalPages, settings.pageNumberFormat);
+      const size = clamp(Math.min(width, height) * 0.032, 18, 34);
+      const marginX = clamp(width * 0.05, 20, 48);
+      const marginY = clamp(height * 0.045, 20, 42);
+      context.save();
+      context.fillStyle = 'rgba(24, 29, 33, 0.9)';
+      context.font = `500 ${size}px Arial`;
+      context.textBaseline = 'alphabetic';
+      if (settings.pageNumberPreset === 'bottom-right') {
+        context.textAlign = 'right';
+        context.fillText(label, width - marginX, height - marginY);
+      }
+      if (settings.pageNumberPreset === 'bottom-center') {
+        context.textAlign = 'center';
+        context.fillText(label, width / 2, height - marginY);
+      }
+      if (settings.pageNumberPreset === 'top-right') {
+        context.textAlign = 'right';
+        context.fillText(label, width - marginX, marginY + size);
+      }
+      context.restore();
+    }
+  }
+
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function scrollToWorkspace() {
+    if (elements.workspace.hidden) {
+      return;
+    }
+    elements.workspace.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function disconnectPreviewObserver() {
+    if (previewObserver) {
+      previewObserver.disconnect();
+      previewObserver = null;
+    }
+  }
+
+  function resetWorkspace() {
+    disconnectPreviewObserver();
+    for (const source of state.sourceDocuments) {
+      if (source.type === 'pdf' && source.pdfjsDoc && typeof source.pdfjsDoc.destroy === 'function') {
+        source.pdfjsDoc.destroy();
+      }
+      if (source.type === 'image' && source.objectUrl) {
+        URL.revokeObjectURL(source.objectUrl);
+      }
+    }
+
+    state.sourceDocuments = [];
+    state.pages = [];
+    state.selectedPageIds.clear();
+    state.draggingPageId = null;
+    state.pendingExport = null;
+    previewCache.clear();
+    elements.splitPanel.hidden = true;
+    elements.overlayPanel.hidden = true;
+    elements.splitInput.value = '';
+    closeExportModal();
+    render();
+    setStatus('idle', '');
+  }
+
+  function canvasToBlob(canvas, type, quality) {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          reject(new Error('Failed to encode image.'));
+          return;
+        }
+        resolve(blob);
+      }, type, quality);
+    });
+  }
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function loadImageSize(url) {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+      image.onerror = () => reject(new Error('Failed to decode image.'));
+      image.src = url;
+    });
+  }
+
+  function loadImageElement(url) {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error('Failed to load image.'));
+      image.src = url;
+    });
+  }
+
+  function setStatus(kind, message) {
+    elements.status.dataset.kind = kind;
+    elements.status.textContent = message;
+  }
+
+  function isPdfFile(file) {
+    return file && (file.type === 'application/pdf' || /\.pdf$/i.test(file.name || ''));
+  }
+
+  function isImageFile(file) {
+    return file && ((file.type === 'image/png' || file.type === 'image/jpeg') || /\.(png|jpe?g)$/i.test(file.name || ''));
+  }
+
+  function isSupportedFile(file) {
+    return isPdfFile(file) || isImageFile(file);
+  }
+
+  function detectImageMime(filename) {
+    return /\.png$/i.test(filename || '') ? 'image/png' : 'image/jpeg';
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+})();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
